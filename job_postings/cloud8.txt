@@ -1,0 +1,46 @@
+Position: AWS Cloud Solutions Engineer
+Company: Innodata Inc.
+Location: Mandaue, Central Visayas
+Pay: N/A
+
+
+Job Description:
+We are seeking a skilled AWS Cloud Solutions Engineer to design, implement, and manage cloud infrastructure primarily within Amazon Web Services (AWS).
+
+Employement Details:
+- Permanent Employment (Full-time)
+- Hybrid arrangement/WFH (based outside of cebu)
+- Flexible schedule
+- Company benefits
+- Can start IMMEDIATELY
+
+Qualifications:
+- Bachelor's degree in any IT-related course
+- AWS Certified Solutions Architect – Associate or Professional.
+- Microsoft Certified: Azure Solutions Architect Expert or Azure Administrator Associate.
+- Google Cloud Professional Cloud Architect or GCP Certified Associate Cloud Engineer.
+- Must be willing to work flexible hours or on a shifting schedule to accommodate global business needs.
+
+
+Required Skills:
+- Strong experience with AWS cloud services (EC2, VPC, S3, Lambda, RDS, IAM, etc.).
+- Hands-on experience with SQL and relational database management (RDS, Azure SQL Database, Cloud SQL, SQL Server, MySQL, PostgreSQL).
+- Familiarity with Azure and GCP services (Virtual Machines, Compute Engine, Kubernetes services, cloud databases, etc.).
+- Experience with infrastructure-as-code tools such as AWS CloudFormation or Terraform.
+- Knowledge of cloud security best practices (IAM, encryption, security groups, etc.).
+- Scripting experience with Python, Bash, or PowerShell.
+- Proven track record in cloud cost optimization and budgeting.
+- Understanding of compliance frameworks (GDPR, HIPAA, SOC 2, etc.).
+- Strong documentation skills and ability to share knowledge in a collaborative environment.
+
+Key Responsibilities:
+- AWS Expertise: Design, deploy, and manage core AWS cloud services (EC2, VPC, S3, Lambda, RDS, IAM, EKS, etc.), including working with SQL-based databases on RDS (MySQL, PostgreSQL, SQL Server).
+- Multi-Cloud Solutions: Assist with building and maintaining hybrid/multi-cloud environments using Azure (Virtual Machines, Azure SQL, AKS, Storage, etc.) and GCP (Compute Engine, Cloud SQL, Kubernetes Engine, Cloud Storage, etc.).
+- Database & SQL Support: Manage, optimize, and troubleshoot cloud-hosted SQL databases across AWS, Azure, and GCP. Support teams with SQL queries, performance tuning, and data migration activities.
+- Infrastructure Automation: Automate infrastructure provisioning using AWS CloudFormation, Terraform, or AWS CDK.
+- Cloud Security & Optimization: Implement security best practices and optimize resources for performance and cost-efficiency across AWS, Azure, and GCP.
+- Collaboration: Work with DevOps, developers, and other teams to integrate cloud and database solutions and support lifecycle processes.
+- Cost Optimization: Continuously analyze cloud resource usage to optimize costs and implement cost-effective strategies across multi-cloud environments.
+- Security & Compliance: Ensure adherence to security best practices (IAM, encryption, network security, etc.) and maintain compliance with standards such as GDPR, HIPAA, and SOC 2.
+- Documentation & Knowledge Sharing: Develop and maintain clear documentation for cloud and database infrastructure, solutions, and best practices. Share knowledge through training sessions, documentation, and workshops.
+

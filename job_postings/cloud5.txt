@@ -1,0 +1,35 @@
+Position: Cloud Engineer 
+Company: Converge Studios Inc.
+Location: Quezon City
+Pay: Php 40,000 - 50,000
+
+
+Responsibilities:
+1. Develop proficiency in cloud technologies, tools, and solutions, especially within the
+assigned solution, and stay updated on industry trends and best practices.
+2. Implement the infrastructure components required for cloud solutions, including the
+setup of virtual machines, networking, storage, databases, and other resources.
+3. Deploy resources and services onto the cloud infrastructure and configure them
+according to requirements. This involves managing scalability, availability, and security
+aspects.
+4. Utilize deployment automation tools, automation platforms, and Infrastructure as
+Code frameworks like Terraform to automate deployment and management processes
+in a cloud environment.
+5. Ensure proper network setup and connectivity between resources in the cloud and
+apply the necessary security considerations for each component.
+6. Enable seamless integration with various tools and cloud services, fostering
+interoperability with platforms like data visualization tools, mapping services, and
+others.
+7. Set up monitoring solutions, configure alerts, and fine-tune performance for the
+optimal operation of resources.
+
+
+Qualifications:
+- 2–5 years of hands-on experience in cloud engineering (AWS, Azure, GCP).
+- Strong understanding of cloud infrastructure, virtualization, storage, networking, and security.
+- Bachelor’s degree in Computer Science, Information Technology, or related field.
+- Proficiency with Infrastructure as Code (Terraform, CloudFormation, ARM templates).
+- Experience with deployment automation, CI/CD pipelines, and scripting languages (Python, Bash, PowerShell).
+- Knowledge of monitoring and logging tools (CloudWatch, Stackdriver, Prometheus, Grafana, etc.).
+- Strong problem-solving skills, attention to detail, and ability to work independently or in a team.
+- Relevant cloud certifications (e.g., AWS Solutions Architect, Azure Administrator, GCP Associate Engineer) are a plus.

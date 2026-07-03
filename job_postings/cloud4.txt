@@ -1,0 +1,35 @@
+Position: Cloud Engineer 
+Company: WPH Digital PH
+Location: Alabang
+Pay: Php 25,000 - 50,000
+
+Job Description:
+Under the administrative supervision of the Technology team, this position is responsible for the deployment, 
+operation, and maintenance of a cloud‑based application infrastructure.
+
+The role involves deploying, automating, maintaining, troubleshooting, and continuously improving systems to ensure smooth 
+and reliable backend operations. It requires strong hands‑on technical expertise, a proactive mindset, and a practical, can‑do 
+approach to environment automation, system management, and continuous improvement.
+
+
+Job Duties:
+- Deploy, automate, maintain, and manage AWS cloud‑based production systems to ensure availability, performance, scalability, and security.
+- Handle build, release, and configuration management of production systems.
+- Perform pre‑production acceptance testing to help ensure the quality of products and services.
+- Troubleshoot and resolve system issues across platform and application domains.
+- Recommend architecture enhancements and process improvements.
+- Ensure critical system security using best‑in‑class cloud security solutions.
+- Evaluate new technologies and third‑party vendor products.
+
+
+Skills and Requirements:
+- Bachelor’s degree in Computer Science or an equivalent technical discipline.
+- At least 2 years of hands‑on experience using a broad range of AWS services (e.g., EC2, RDS, ELB, EBS, S3, VPC, Glacier, IAM, CloudWatch, KMS), with a strong focus on cloud security best practices.
+- AWS Certified Solutions Architect (Associate) is preferred.
+- Familiarity with infrastructure‑as‑code tools such as CloudFormation and Terraform.
+- Experience working as a DevOps Engineer in a 24x7 AWS production environment, including automation using configuration management tools.
+- Strong scripting and automation skills.
+- Solid experience in both Windows and Linux system administration.
+- Hands‑on experience with system monitoring tools.
+- Strong problem‑solving skills with the ability to diagnose and resolve complex infrastructure and application deployment issues.
+- Experience with other cloud platforms such as Azure or GCP is a plus.

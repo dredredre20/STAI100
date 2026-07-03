@@ -1,0 +1,44 @@
+Position: Cloud Engineer
+Company: Kayana Solutions Inc.
+Location: Makati, NCR
+Pay: N/A
+
+
+Job Sumamry:
+Kayana is seeking a Cloud Engineer with hands-on experience in designing, delivering, maintaining scalable, secure, high-performance, and cost-efficient cloud-optimized solutions across the organization. 
+This role is ideal for candidates with good working knowledge in cloud computing who want to expand expertise and contribute in cloud operations, automation,
+architecture and financial operations. The role is critical in supporting Kayana’s digital ecosystem that integrate systems, productize data/services, and streamline processes across various entities within and outside the organization.
+
+
+Key Responsibilities:
+- Provision, configure, and manage cloud infrastructure resources (compute, storage, networking, databases).
+- Monitor performance, troubleshoot issues, and maintain secure, stable, and scalable cloud environments.
+- Implement and/or support cloud security and compliance controls (IAM, encryption, security groups, backups, DR, data privacy, etc).
+- Support cost optimization and governance by tracking usage, generating reports, managing budgets, and identifying savings opportunities.
+- Contribute to automation efforts using Infrastructure as Code (Terraform, CloudFormation, ARM) and CI/CD pipelines.
+- Set up and maintain observability tools (IE CloudWatch, Grafana) for performance and incident management.
+- Collaborate and document with cross-functional teams to ensure smooth deployment, governance, and continuous improvement.
+
+
+Qualifications:
+- At least 2 years of experience in cloud computing, IT infrastructure, or systems administration.
+- Experience in design, implementation, maintenance, and support of organization-wide cloud platform (AWS)
+- Knowledge on various cloud platforms (AWS, Azure, GCP)
+- Familiarity with multi-cloud or hybrid cloud environments is a plus
+- Working knowledge of networking concepts such as VPCs, subnets, firewalls, and routing.
+- Familiarity with scripting languages (Python, Bash, or PowerShell) and version control (Git).
+- Hands-on exposure to Infrastructure as Code (IaC) tools like Terraform or CloudFormation.
+- Proficiency in Terraform and CloudFormation
+- Knowledge on IAM, encryption, network security, and compliance standards
+- Cost and resource utilization and optimization of cloud solutions
+- Proficiency in various tools:
+- Cloud - AWS; integration-related and data-related services
+- API Management - AWS API Gateway
+- DevOps and CI/CD tools – GitHub Actions, Jenkins, AWS CI/CD services
+- Containerization - Docker, Kubernetes, EKS
+- Secrets and Identity Management - AWS Secrets Manager
+- Observability - AWS CloudWatch, ELK Stack
+- Encourage innovation and continuous improvement in cloud delivery and operations
+
+Education / Certifications:
+- Bachelor’s degree in Computer Science, Information Technology, Engineering, or a related field (or equivalent experience)

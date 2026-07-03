@@ -1,0 +1,29 @@
+Position: Cloud Engineer
+Company: RCBC
+Location: Taguig, NCR
+Pay: N/A
+
+
+Job Summary:
+Responsible for the overall planning, organizing, and execution of assigned IT infrastructure and systems in accordance 
+with bank standards and MTPP compliance laws and regulations. This includes managing assigned IT operations and 
+functions to meet customer requirements as well as the support and maintenance of existing applications and development of new technical solutions. 
+
+
+How will you contribute?
+- Acts as the lead for application system enhancements or mid to complex infrastructure projects and changes.
+- Ensures the consistency and maintainability of existing applications by creating, maintaining, and enforcing standards/procedures for implementing technical solutions.
+- Directs operations in executing production tasks according to a documented schedule that meets or exceeds customer expectations.
+- Assigns workload to identify and balance the duties and responsibilities performed by each project team member.
+- Ensures that project adheres to quality assurance standards and guidelines. 
+- Reviews performance of existing application system in production and recommends enhancements/modifications for improved efficiency. 
+- Ensures adherence to the bank’s methodology and standards on systems development, information security and audit. Recommends solutions to address audit findings.
+
+
+What will make you successful?
+- Graduate of any IT-related course
+- Over 5 years of experience in systems analysis, design, and development, focusing on cloud and diverse computing environments.
+- Proven experience managing AWS cloud platform with experience in Kubernetes and Container Technologies (EKS and Openshift)
+- Proficiency in scripting and automation tools (e.g., Terraform, Python).
+- Demonstrable skills in project management and familiarity with agile methodologies.
+- Willing to work in Taguig

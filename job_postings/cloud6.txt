@@ -1,0 +1,30 @@
+Position: Azure Cloud Engineer 
+Company: Accenture Philippines
+Location: Mandaluyong, NCR
+Pay: N/A
+
+
+Key Responsibilities:
+- Collaborate with Cloud Infrastructure Architects to implement secure, scalable, and reliable Azure solutions
+- Provision and manage Azure infrastructure using Infrastructure as Code (IaC) tools such as Terraform
+- Perform day-to-day Azure administration, including resource management, access control, and policy enforcement
+- Monitor system performance, availability, and security using Azure-native tools (e.g., Azure Monitor, Log Analytics)
+- Configure and support Azure services, including virtual machines, storage, networking, and serverless components
+- Manage and troubleshoot networking components such as NSGs, VPNs, and firewalls
+- Support integration of on-premise and client cloud environments with Azure for secure data exchange
+- Assist in incident management, root cause analysis, and issue resolution across Azure platforms
+- Maintain accurate documentation of configurations, processes, and system changes
+- Contribute to continuous improvement of cloud operations and automation 
+
+
+Qualifications:
+- Bachelor’s degree in IT, Computer Science, or related field (or equivalent experience)
+- At least + year of hands-on experience in Azure Administration or Cloud Engineering
+- Strong experience with Azure IaaS and PaaS services (VMs, App Services, Storage, Networking, etc.)
+- Familiarity with Azure identity and access management (IAM) and security best practices
+- Experience configuring and troubleshooting networking (NSG, VPN, routing, firewalls)
+- Working knowledge of monitoring, logging, and alerting tools in Azure
+- Exposure to Infrastructure as Code (Terraform preferred)
+- Understanding of cloud architecture, deployment, and support processes
+- Strong analytical, troubleshooting, and problem-solving skills
+- Ability to manage multiple priorities in a fast-paced environment

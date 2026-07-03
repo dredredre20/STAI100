@@ -1,0 +1,25 @@
+Position: Entry Level Java Cloud Engineer 
+Company: Rocket Partners
+Location: Manila
+Pay: N/A
+
+
+Responsibilities:
+- Assist in building and maintaining cloud-native full stack applications
+- Develop backend services using Java and Spring Boot
+- Work with Angular to build intuitive and responsive user interfaces
+- Learn and apply best practices for cloud (AWS/Azure) development
+- Participate in code reviews, testing, and documentation
+- Collaborate in Agile development teams to deliver high-quality solutions
+
+
+Requirements:
+- Bachelor’s degree in Computer Science, Information Technology, or a related field
+- Native English speaking fluency required
+- Solid foundation in object-oriented programming (Java preferred)
+- Openness to learning and using AI coding assistants (GitHub Copilot, Cursor, Claude, ChatGPT, etc.) as part of your development workflow under the guidance of senior engineers
+- Coachable mindset—eager to learn best practices for validating AI-generated code and understanding when to seek human guidance on technical decisions
+- Exposure to web development (HTML/CSS/JavaScript or frameworks like Angular)
+- Willingness to learn cloud technologies, microservices, and CI/CD tools
+- Strong analytical and communication skills
+- Enthusiastic about learning and developing software that makes a difference

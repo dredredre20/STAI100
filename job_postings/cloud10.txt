@@ -1,0 +1,38 @@
+Position: Azure Cloud Engineer
+Company: IBM
+Location: Quezon City, NCR
+Pay: N/A
+
+
+Your Role And Responsibilities:
+As an Infrastructure Specialist for the Azure Platform, you will manage and implement Azure-based 
+infrastructure solutions according to established designs, ensuring scalability, reliability, and 
+security. You will collaborate with IT teams to implement and integrate Azure infrastructure solutions based on existing designs.
+
+
+Your Primary Responsibilities Will Include:
+- Set up and Configure Azure Resources: Set up, configure, and manage Azure Virtual Machines, storage solutions, networking, and databases to effectively support business applications. This includes implementing and overseeing essential Azure resources such as Virtual Networks, Load Balancers, and Application Gateways.
+- Monitor and Troubleshoot Azure Infrastructure: Continuously monitor Azure infrastructure, troubleshoot issues, and maintain high availability (HA) and disaster recovery (DR) configurations to ensure reliable performance.
+- Apply Security Measures: Apply and enforce security measures to ensure Azure infrastructure complies with organizational policies and industry regulations.
+- Optimize Azure Costs: Optimize Azure costs by right-sizing resources, developing cost-effective solutions, and monitoring usage patterns.
+- Automate Processes: Use automation tools like Azure Automation, Terraform, and Ansible to automate and streamline processes.
+
+
+Preferred Education:
+- Bachelor’s Degree
+
+
+Required Technical And Professional Expertise:
+- Experience with Azure Services: Deep proficiency in Azure services, including Azure Virtual Machines, Azure Storage, Azure Virtual Networks, and Azure SQL Database, along with expertise in Windows and VMware environments.
+- Cloud Migration Expertise: Experience with cloud migration projects, including implementation and execution, with a focus on Azure-based infrastructure solutions.
+- Automation Tools: Exposure to automation tools like Azure Automation, Terraform, and Ansible to automate and streamline processes.
+- Container Orchestration: Proficiency in managing Kubernetes clusters through Azure Kubernetes Service (AKS) for effective container orchestration and scaling.
+- DevOps Practices: Experience with DevOps practices, such as continuous integration and continuous deployment (CI/CD), to ensure smooth operations and reliable performance
+
+
+Preferred Technical And Professional Experience:
+- Cloud Security Knowledge: Exposure to cloud security best practices and compliance frameworks, such as HIPAA, PCI-DSS, or GDPR, to ensure Azure infrastructure meets regulatory requirements.
+- Advanced Scripting Skills: Experience with scripting languages like PowerShell, Bash, or Python to automate tasks and workflows in Azure environments.
+- Hybrid Cloud Experience: Exposure to hybrid cloud architectures, including Azure Stack, Azure Arc, or Azure VMware Solution, to integrate on-premises infrastructure with Azure services.
+
+

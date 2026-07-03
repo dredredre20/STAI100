@@ -1,0 +1,32 @@
+Position: Cloud Engineer 
+Company: Information Professionals Inc.
+Location: Quezon City
+Pay: Php 80,000 - 100,000
+
+Key Requirements:
+- 3–5 years in Cloud Engineering & Operations (AWS, Azure, or GCP).
+- 2–4 years managing CI/CD automation and production troubleshooting.
+
+Technical Stack:
+- Infrastructure as Code: Terraform, CloudFormation, ARM, Ansible
+- CI/CD & Containers: Jenkins, GitLab CI/CD, Docker, Kubernetes
+
+Preferred Certifications:
+- Certified Kubernetes Administrator (CKA)
+- AWS / Azure / GCP Certified Solutions Architect or DevOps Engineer
+- ITIL Certification
+
+Job Details:
+- Direct-hire to client
+- Hybrid setup in Quezon City
+
+Responsibilities:
+- Deploy and configure secure, scalable, and resilient cloud resources according to design specifications.
+- Support day-to-day operations of cloud workloads, monitoring availability and performance.
+- Apply Infrastructure-as-Code (IaC) to provision and manage resources consistently.
+- Implement CI/CD pipelines for application deployment and infrastructure updates.
+- Optimize cloud resources for cost, security, and performance.
+- Respond to incidents, perform troubleshooting, and resolve cloud-related issues.
+- Collaborate with development, operations, and security to resolve escalated issues.
+- Ensure configurations comply with security, governance, and regulatory standards.
+- Maintain accurate and up-to-date documentation of cloud environments and configurations.

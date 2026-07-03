@@ -1,0 +1,77 @@
+Position: Cloud Engineer
+Company: Cardinal Health
+Location: Taguig
+Pay: N/A
+
+Job Description:
+Cardinal Health, a global leader in healthcare innovation, is seeking a Cloud Engineer 
+to help drive the evolution of our enterprise‑scale cloud and CI/CD platforms. 
+Operating in a multi‑cloud, multi‑tenant environment, our platforms support thousands of developers across 
+hundreds of teams, powering mission‑critical workloads across IaaS, PaaS, and CaaS models.
+
+As part of the Serverless Platforms Team, you will help design, build, operate, and continuously 
+improve our cloud‑native and CI/CD platforms—including Kubernetes, serverless runtimes, and the 
+enterprise Harness CI/CD ecosystem. You will work closely with application teams, security partners, and 
+platform stakeholders to deliver secure, scalable, and repeatable deployment patterns using GitOps, infrastructure as code, and modern DevSecOps practices.
+
+With a strong foundation in cloud‑native development and platform engineering, 
+you will help ensure our platforms are reliable, governed, and easy to consume—while fostering 
+a culture of technical excellence, automation, and continuous improvement. If you are passionate 
+about Kubernetes, CI/CD platforms, and solving complex platform‑scale challenges, join us to help shape the future of healthcare technology.
+
+
+Role Summary:
+As a Cloud Engineer, your primary responsibility will be to design, deploy, and support containerized and serverless platforms on Google Kubernetes Engine 
+(GKE) and to operate and evolve the enterprise Harness CI/CD platform. You will enable application teams to build, test, and deploy software through standardized, 
+secure, and scalable pipelines while ensuring platform reliability, compliance, and developer experience.
+
+
+Responsibilities:
+- Design, deploy, and manage Kubernetes clusters and workloads on GKE using Infrastructure as Code and GitOps practices.
+- Operate and support the enterprise Harness CI/CD platform, including build, deploy, and infrastructure pipelines, ensuring availability, reliability, and consistent developer experience across teams.
+- Develop and maintain standardized Harness pipeline templates for build, test, security scanning, and deployment to Kubernetes and serverless runtimes.
+- Partner with application teams to onboard services to Harness, providing guidance, troubleshooting, and best‑practice enablement.
+- Integrate CI/CD pipelines with Infrastructure as Code tooling (e.g., Terraform) and GitOps solutions (e.g., ArgoCD, Flux) to support repeatable and auditable deployments.
+- Embed security and compliance controls into CI/CD workflows, including vulnerability scanning, policy enforcement, secrets management, and audit logging to meet HIPAA, SOX, and enterprise security requirements.
+- Collaborate with DevSecOps and Application Security teams to shift security left within the SDLC, leveraging tools such as Trivy, Aqua, or equivalent scanners integrated into Harness pipelines.
+- Monitor platform health, pipeline execution, and application performance using tools such as Dynatrace, Prometheus, and cloud‑native monitoring; perform root cause analysis and drive incident resolution.
+- Participate in code and pipeline reviews, establish platform standards, and ensure adherence to engineering best practices.
+- Enforce platform governance and guardrails using policy‑as‑code approaches (e.g., OPA), ensuring consistency, observability, and compliance across all environments.
+- Act as a technical liaison between the Serverless Platforms Team and partner organizations, translating business and delivery needs into scalable platform capabilities.
+- Communicate platform changes, incident status, and best practices through clear runbooks, release notes, and stakeholder updates; facilitate working sessions to drive alignment and unblock delivery.
+- Stay current with cloud‑native and CI/CD trends, contributing to the ongoing evolution of Cardinal Health’s cloud and DevOps strategy.
+
+
+Qualifications:
+- Bachelor’s degree in Computer Science, Engineering, or equivalent practical experience.
+- 3+ years of experience in cloud engineering with a strong focus on Kubernetes and GCP (preferred).
+- Hands‑on experience designing, operating, or supporting CI/CD platforms, preferably Harness CI/CD in an enterprise environment.
+- Strong understanding of microservices, event‑driven architectures, and distributed systems.
+- Experience with GitOps, Infrastructure as Code, and automated delivery pipelines.
+- Familiarity with DevSecOps practices, security scanning, and compliance requirements in regulated environments.
+- Exceptional communication skills—able to translate complex platform and security concepts for both technical and non‑technical audiences, and to influence outcomes through clear documentation and stakeholder alignment.
+- Proven problem‑solving skills and the ability to operate effectively in complex, evolving environments.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
