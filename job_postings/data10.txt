@@ -1,0 +1,55 @@
+Position: Data Scientist
+Company: TP
+Location: Mandaluyong, NCR
+Pay: N/A
+
+
+WHAT YOU WILL DO:
+- Own problems end-to-end —> from identifying the opportunity to delivering and measuring impact
+- Quickly understanding client business models, operations, and pain points
+- Identify business problems that can be solved using data science and analytics
+- Leverage existing data sources and identify new data sources to increase solution value
+- Design and deliver diagnostic, predictive, and ML-assisted analytics solutions
+- Use SQL, Python, and advanced Excel to analyze datasets and generate insights
+- Build basic machine-learning models where appropriate
+- Work closely with operations and transformation teams to deploy solutions
+- Track, measure, and optimize solution performance
+- Communicate insights clearly to non-technical stakeholders
+- Act as a trusted data science & analytics partner
+
+ROLE STRUCTURE & SENIORITY:
+- Hands-on individual contributor role
+- No direct people management responsibilities
+- Opportunity to mentor junior team members as the function scales
+- Clear growth pathways into senior IC or leadership roles
+
+
+REQUIRED SKILLS:
+- Ability to understand the lay of the business & identify opportunities for projects
+- Strong analytical and problem-solving skills
+- Working knowledge of SQL, Python, and advanced Excel
+- Understanding of basic machine-learning concepts
+- Ability to translate analysis into business insights
+
+
+TOOLS & TECHNOLOGIES:
+- SQL
+- Python
+- Advanced Excel
+- BI tools such as Power BI or Tableau
+- Cloud exposure is a plus
+
+
+Core Competencies:
+- Strong analytical and problem-solving skills
+- Ability to manage multiple projects and priorities simultaneously
+- Excellent stakeholder communication and storytelling skills
+- Innovative mindset with strong attention to quality and detail
+- High integrity, collaborative, and empathetic leadership style
+
+
+TRAINING & GROWTH:
+- Structured on-the-job training in SQL, Python, and Machine Learning
+- Exposure to real enterprise client problems
+- Strong learning curve and career growth opportunities
+

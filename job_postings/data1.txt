@@ -1,0 +1,30 @@
+Position: Data Scientist
+Company: LBC Express, Inc.
+Location: Pasay, NCR
+Pay: N/A
+
+
+Job Summary:
+We are looking for a Data Scientist that will help us discover the information hidden in vast amounts of data and help us generate insights to make smarter decisions in delivering our business and customer needs. 
+Your primary focus will be in doing statistical analysis, applying data mining techniques, building and maintaining high quality behavioral, prediction and forecast models, and drawing strategic insights from the results of these analysis.
+
+
+Job Specification:
+- Bachelor to Master’s Degree in Quantitative field such as Business Analytics, Statistics, Applied Statistics, and Applied Mathematics.
+
+Work Experience:
+Minimum of at least 1-2 years’ work experience in:
+- Statistics and Analytics
+- Economics
+- Market Research
+- Marketing and Campaigns Management
+- Business Review Reporting and Analysis
+
+Competencies/Skills:
+- Proficient in using data science toolkits like R and Python
+- Experience with data management software, such as SQL is an advantage
+- Deep understanding of statistical methods and modeling concepts
+- Ability to generate insights from results of analysis
+- Good presentation and communication skill
+- Agile, versatile and well adept to extended working hours
+

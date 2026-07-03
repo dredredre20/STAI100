@@ -1,0 +1,43 @@
+Position: Junior Data Scientist
+Company: LSEG
+Location: Taguig, NCR
+Pay: N/A
+
+
+Role, Responsibilities & Key Accountabilities:
+- Contribute to the development of data acquisition, cleaning, transformation, and processing workflows as part of the enterprise data management framework. 
+- Support the design and improvement of financial analytics data pipelines, helping integrate tools and services to create smooth, end‑to‑end user experiences. 
+- Work with analytics domain experts to understand data requirements and translate them into clear tasks, models, or pipeline components under the guidance of senior team members. 
+- Assist in implementing data solutions by collaborating with engineering, product, and project delivery teams. 
+- Participate in building and evaluating machine learning and deep learning models, including NLP, LLMs, and RAG‑based approaches. 
+- Help create evaluation frameworks that measure the effectiveness of automation and AI solutions. 
+- Carry out data processing tasks such as web scraping, entity extraction, and pre‑/post‑processing of structured, semi‑structured, and unstructured documents (e.g., PDFs, scanned files). 
+- Support cloud‑based development (AWS or similar), including onboarding workloads and following CI/CD and MLOps best practices. 
+- Stay current with emerging technologies, analytics techniques, and financial data trends to continually improve your skills. 
+
+
+Required Skills:
+- 0–2 years of experience in data science, analytics, or statistical modelling (including internships or academic projects). 
+- Foundational knowledge in data analytics, feature engineering, ML, NLP, LLMs, and RAG workflows. 
+- Proficiency with Python and familiarity with core data science libraries (Pandas, NumPy, Scikit‑learn, etc.). 
+- Experience using Git and exposure to CI/CD pipelines (GitLab/GitHub runners). 
+- Understanding of relational databases, statistics, and basic statistical programming concepts. 
+- Ability to work with large datasets and perform data cleaning, transformation, and exploratory analysis. 
+- Exposure to MLOps fundamentals and experience working with cloud platforms (AWS/Azure). 
+- Ability to set and uphold coding standards. 
+- Strong analytical thinking, problem‑solving ability, and prioritization skills. 
+- Effective communication skills with the ability to explain technical concepts clearly. 
+- Ability to collaborate across teams, take feedback, and contribute to shared goals. 
+- Hands-on experience with leading commercial or open-source data management tools. 
+- Excellent written, verbal, and presentation skills, with the ability to present to peers, senior management, and cross-functional partners. 
+- Broad business awareness and understanding of relevant internal business relationships. 
+- Ability to resolve complex business challenges using deep technical knowledge and industry insight. 
+
+Preferred:
+- Exposure to financial services, investment banking, or related domains. 
+- Familiarity with Refinitiv or LSEG platforms and datasets. 
+- Experience working with distributed or global teams. 
+
+Education:
+- Master’s degree in Statistics, Mathematics, or Computer Science with a Data Science certification, or an Engineering degree specializing in Data Science and Artificial Intelligence. 
+- Proficiency in Python, R, and SQL. 

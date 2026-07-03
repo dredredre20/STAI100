@@ -1,0 +1,38 @@
+Position: Data Scientist
+Company: Eclaro
+Location: Quezon City, NCR
+Pay: N/A
+
+
+Data Scientist – Bayesian Modeling: 
+- We are seeking a Data Scientist with proven expertise in building, deploying, and scaling data modeling and machine learning 
+solutions. The ideal candidate has hands-on experience across the full ML lifecycle — data preprocessing, model development and 
+tuning, ML Ops for deployment, and observability on AWS.
+ 
+Key Responsibilities (MMM & AWS Focus):
+- Design, develop, and deploy Media Mix Modeling (MMM) models and solutions to measure channel effectiveness, ROI, and incrementality.
+- Build forecasting and simulation models to support scenario planning, budget optimization, and marketing strategy
+- Implement data pipelines for preprocessing, feature engineering, and automation of large-scale media and sales datasets
+- Build APIs and dashboards to deliver MMM insights (ROI, MROI, contribution curves, optimization recommendations) directly into business workflows.
+- Partner with cross-functional teams (engineering, marketing, product, leadership) to translate MMM results into actionable strategies.
+- Maintain clear documentation, reproducible code, and version control (Git) to support transparency and knowledge transfer.
+
+
+Required Skills:
+- Ability to deliver high quality and timely output in a high-pressure environment with tight customer deadlines
+- Proven expertise in developing Bayesian and machine learning models, with experience in Marketing Mix Modeling (MMM) preferred. Candidates with strong modeling experience in MarTech, advertising technology, eCommerce, forecasting, optimization, or other relevant domains will also be considered.
+- Prior experience in using regression models, hierarchical modeling, and generative AI techniques
+- 5+ years of expertise in using SQL, Python and related libraries (NumPy, Pandas, Scikit-learn)
+- 4+ years of experience designing, deploying, and optimizing data modeling and machine learning solutions
+- Experience working with SageMaker, EC2, S3, Lambda, and other AWS services
+- Strong analytical skills with the ability to communicate complex technical concepts to internal and external stakeholders
+
+
+Nice-to-have Skills:
+- Apply deep learning frameworks (TensorFlow, PyTorch, Hugging Face) to extend MMM capabilities (e.g., nonlinear effects, adstock, carryover).
+- Exposure to agentic frameworks and advanced AI platforms for data science and modeling
+- Prior experience with enterprise data pipelines following MLOps best practices
+- Ability to operate as a full stack developer and work on APIs, UI, and other parts of the Platform
+ 
+Educational Qualifications:
+ - Bachelor's degree in Computer Science, Engineering, Applied Mathematics, or related field (Master's preferred).

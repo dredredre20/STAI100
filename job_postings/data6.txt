@@ -1,0 +1,40 @@
+Position: Data Scientist - Fraud Strategy and Analytics
+Company: GoTyme Bank
+Location: Quezon City, NCR
+Pay: N/A
+
+
+
+About the role:
+We are looking for a highly analytical and detail-oriented Analyst / Senior Analyst - Fraud Strategy & Analytics to 
+join our Fraud Analytics Team. You will play a key role in developing, implementing, and optimizing fraud prevention and 
+detection strategies across GoTyme Bank's products and digital channels. You will analyze complex datasets, identify emerging 
+fraud trends, and work closely with cross-functional teams to balance fraud loss mitigation with customer experience.
+
+
+Fraud Strategy & Analytics:
+- Monitor transactional and behavioral data to identify patterns indicative of fraudulent activity.
+- Develop and enhance rule-based and model-driven fraud detection strategies for digital banking products (e.g., cards, transfers, deposits, lending).
+- Conduct deep-dive investigations into fraud cases and recommend preventive actions.
+- Partner with product, technology, and data teams to enhance fraud monitoring systems and controls.
+- Support the design, testing, and rollout of new fraud mitigation tools and analytics capabilities.
+- Prepare regular performance reports and present fraud insights to senior management.
+- Participate in incident reviews, risk assessments, and process improvement initiatives.
+
+
+Innovation and Research:
+- Experiment with new tools, techniques, algorithms and methodologies to enhance the bank's capabilities. 
+
+Must Haves:
+- Bachelor's degree or higher in applied mathematics, statistics, computer science, physics, data science, economics, engineering or equivalent quantitative discipline.
+- 2-5 years of experience in fraud analytics or credit strategy or analytics within banking, fintech, or payments.
+- Experience in first-party, third-party, or synthetic fraud risk management is preferred.
+- Knowledge of machine learning techniques for fraud detection is preferred.
+- Strong SQL for data manipulation and reporting.
+- Proficiency in Python for analytics, modeling, and automation.
+- Exposure to AI/ML frameworks (advantageous but not required).
+- Proficiency in Excel, and/or data visualization tools (e.g., Tableau, PowerBI).
+- Strong analytical problem-solving skills and attention to detail. 
+- Excellent communication skills - able to present complex findings in a clear, concise manner.
+- Experience in fintech, digital banking, or technology-driven financial institutions preferred.
+

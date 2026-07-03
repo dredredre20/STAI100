@@ -1,0 +1,34 @@
+Position: Data Scientist
+Company: Kroll
+Location: Manila, NCR
+Pay: N/A
+
+
+Responsibilities:
+- Build, train, and evaluate machine learning models across traditional ML, NLP, and LLM/GenAI use cases, under the guidance of senior team members
+- Contribute to data pipelines and feature engineering workflows in Databricks using PySpark and Delta Lake
+- Support model deployment and monitoring on Azure — including Azure AI Foundry, Azure OpenAI, and Azure Functions — and help maintain production model health
+- Contribute to LLM and generative AI workflows — including prompt engineering, RAG pipelines, and agentic applications built on frameworks such as LangChain or LlamaIndex — under the guidance of senior team members
+- Conduct exploratory data analysis and communicate findings clearly through code, documentation, and team presentations
+- Write clean, well-tested, and reproducible Python code; contribute to shared codebases and track experiments via MLflow
+- Partner with senior data scientists and cross-functional stakeholders to understand business problems and translate them into analytical approaches
+- Participate actively in code reviews, team rituals, and knowledge-sharing sessions
+- Develop your skills proactively — engage with new tools, research, and techniques relevant to the team's work
+
+Requirements:
+- Bachelor's or Master's degree in computer science, statistics, mathematics, data science, or a related quantitative field
+- 1–3 years of practical data science or ML experience (internships, co-ops, research, and strong project work all count)
+- Proficiency in Python and familiarity with core ML libraries (scikit-learn, pandas, NumPy)
+- Solid understanding of foundational ML concepts: supervised and unsupervised learning, model evaluation, cross-validation, and feature engineering
+- Exposure to at least one deep learning or NLP framework (PyTorch, TensorFlow, or Hugging Face Transformers) and familiarity with LLM concepts such as prompt engineering, embeddings, or retrieval-augmented generation
+- Comfort working with structured and unstructured data, including text and document-based sources
+- Basic understanding of the ML lifecycle — from data preparation and experimentation through evaluation and handoff
+- Clear, organised communication skills — able to document work and explain methods to peers and stakeholders
+- Curiosity, rigour, and a strong drive to learn in a fast-paced, collaborative environment
+
+Preferred:
+- Hands-on experience with Databricks, Spark/PySpark, or cloud ML platforms (Azure AI Foundry, AWS SageMaker, or GCP Vertex AI)
+- Hands-on experience with LLM/GenAI and agentic workflows — prompt engineering, RAG, embeddings, vector databases, or building with frameworks such as LangChain, LlamaIndex, or Semantic Kernel
+- Familiarity with MLflow or other experiment tracking and model versioning tools
+- Experience in financial services, risk, compliance, or a regulated industry
+- Knowledge of responsible AI principles, including fairness, transparency, and data privacy

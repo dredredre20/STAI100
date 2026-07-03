@@ -1,0 +1,52 @@
+Position: Data Scientist
+Company: Stratpoint Technologies
+Location: Mandaluyong, NCR
+Pay: N/A
+
+
+The Role:
+
+The Data Scientist plays a key role in supporting the Data Team’s vision of building a data 
+ecosystem that delivers accurate, timely, and well-structured data to enable the cycle of data asset enrichment 
+for broader enterprise impact. This role is both technical and strategic — contributing to the delivery of high-quality 
+data and model solutions while also helping build data foundations through active involvement in data governance initiatives.
+
+The Data Scientist will collaborate closely with both internal stakeholders 
+(Product Leads, Machine Learning Engineers, and Software Developers) as well as external stakeholders'
+(inc. other business units) as they enable use cases, advance operational efficiency and effectiveness, and champion data-driven culture.
+
+
+Your Responsibilities:
+- Develop and implement forecasting models, including time series and hierarchical forecasting frameworks (e.g., bottom-up, top-down, reconciliation methods)
+- Apply statistical, machine learning, and deep learning techniques to solve real-world prediction problems
+- Design and maintain automated data pipelines, including data ingestion, preprocessing, model training, and output generation
+- Work with sparse, noisy, or incomplete datasets, ensuring robustness and reliability of models
+- Perform data analysis and visualization, including the creation of clear and insightful forecasting graphs and dashboards
+- Integrate data from open-source datasets and external data vendors
+- Conduct basic web scraping and/or develop synthetic data generation pipelines where data is limited
+- Collaborate with cross-functional teams to translate business requirements into scalable AI solutions
+
+
+About You:
+- Bachelor’s or Master’s degree in Data Science, Statistics, Physics, Math, Computer Science, Engineering, or a related quantitative field
+- Proven experience in time series forecasting and statistical modeling
+- Solid understanding of: Machine Learning (e.g., regression, tree-based models, ensemble methods); Deep Learning (e.g., RNNs, LSTMs, Transformers for time series); Statistical methods (e.g., inference, probabilistic modeling)
+- Experience working with hierarchical or multi-level datasets
+- Proficiency in Python, common data science libraries and tools such as: NumPy, Pandas, Scikit-learn, PyTorch/TensorFlow, Nixtla; Data visualization frameworks (Matplotlib, Seaborn, Plotly); Fast API, Streamlit, Gradio; Docker, Git; AWS (S3, RDS, Redshift); SQL; Marimo (or similar reproducible notebooks); Databricks or similar platforms
+- Experience building end-to-end data workflows, including ingestion, transformation, modeling, and output
+- Strong skills in data visualization and graphical analysis
+- Effective communication skills, and able to clearly document work (pipelines, flowcharts, ERDs, BRDs)
+
+
+Nice to have:
+- Experience in healthcare or financial data domains, including cost optimization use cases
+- Experience with data engineering concepts (ETL pipelines, data warehousing), and can integrate open-source and external data
+- Experience with web scraping tools (e.g., BeautifulSoup, Scrapy) or synthetic data generation techniques
+- Experience with distributed data systems and scalable computing
+- Familiarity with sparse data modeling techniques and uncertainty quantification
+- Exposure to cloud platforms (e.g., AWS, GCP, Azure)
+- Knowledge of MLOps practices (model deployment, monitoring, CI/CD for ML systems)
+- Familiarity with data governance, including frameworks for data quality checks, lineage, security and compliance
+- Familiarity with experiment tracking and model versioning tools
+- Understanding of optimization techniques and numerical methods
+

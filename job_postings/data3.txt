@@ -1,0 +1,30 @@
+Position: Data Scientist
+Company: Manulife
+Location: Quezon City, NCR
+Pay: N/A
+
+
+Position Responsibilities:
+- Develop and implement analytics‑enabled solutions to improve business processes, generate insights, and support business strategy.
+- Own and deliver end‑to‑end analytics projects of moderate complexity, while contributing to larger, more complex initiatives.
+- Analyze large and complex datasets to generate actionable insights and translate findings into clear business recommendations.
+- Collaborate closely with business stakeholders and subject matter experts to understand data sources, processes, and business needs.
+- Provide guidance and mentorship to junior data scientists and contribute to knowledge sharing within the analytics community.
+
+
+Required Qualifications:
+- Minimum of 5 years of applicable experience with advanced knowledge of programming languages and concepts (Python and SQL, SQL queries)
+- Knowledge in data visualization tools such as PowerBI, plotly, R Shiny, etc. (or other equivalent data visualization tools)
+- Strong knowledge of machine learning and AI algorithms
+- Advanced degree in Statistics, Mathematics, Computer Science, Engineering, or a related field; or a Bachelor’s degree with equivalent technical experience
+
+
+Preferred Qualifications:
+- Experience applying statistical modeling and machine learning techniques (e.g., regression, clustering, decision trees, survival analysis)
+- Working knowledge of AI, GenAI, or advanced analytics toolkits and frameworks, including exposure to Retrieval‑Augmented Generation (RAG)
+- Exposure to cloud platforms (e.g., Azure, AWS, or GCP) for data processing, model development, or solution deployment
+- Experience with data visualization tools such as Tableau, Qlik, or open‑source libraries (e.g., ggplot, d3)
+- Familiarity with relational database models and large‑scale data environments
+- Proficient in querying and analyzing both structured and unstructured data (SQL, NoSQL, JSON, MongoDB)
+- Experience designing or implementing scalable, end‑to‑end analytics processes with appropriate governance and tracking mechanisms
+

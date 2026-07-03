@@ -1,0 +1,30 @@
+Position: Data Scientist
+Company: Smart Communities, Inc.
+Location: Makati, NCR
+Pay: N/A
+
+
+
+Responsibilities:
+- Collaborate with data science and engineering teams to develop, optimize, and deploy machine learning models in on premises and cloud environments.
+- Oversee the ML model lifecycle from data preparation and feature engineering to deployment and monitoring.
+- Prepare, clean, and transform data to be used for training and inference.
+- Ensure the scalability, reliability, and performance of machine learning models.
+- Monitor and maintain deployed models, implement updates, and troubleshoot any issues that may arise.
+- Assist in designing and maintaining machine learning pipelines, ensuring efficient data flow and model deployment.
+- Translate analytical findings into clear recommendations for stakeholders.
+- Ensure responsible AI practices are followed, addressing bias, fairness, and ethical considerations in line with Data Privacy, Cybersecurity, and AI policies.
+
+
+Minimum Requirements:
+- Bachelor’s degree holder of any quantitative discipline such as Data Science, Statistics, Computer Science, or related quantitative field
+- 2–4+ years’ experience with the full ML/AI lifecycle from data preparation to deployment and monitoring
+- Strong proficiency in Python, SQL, and experience with AWS/Databricks environments
+- Good communication skills to explain complex ML/AI concepts to diverse stakeholders
+- Exposure to Generative AI or LLMs, with understanding of responsible AI practices (bias, fairness, data privacy)
+
+
+ Nice to Have:
+- Hands-on experience with LLMOps, RAG, or Agentic AI
+- Version Control (git) and experience with CI/CD pipelines for ML model deployment
+
