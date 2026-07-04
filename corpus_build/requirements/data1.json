@@ -2,20 +2,25 @@
   "posting_id": "data1",
   "target_role": "data_scientist",
   "required_skills": [
-    "Bachelor to Master’s Degree in Quantitative field such as Business Analytics, Statistics, Applied Statistics, and Applied Mathematics",
-    "Minimum of at least 1-2 years’ work experience in Statistics and Analytics, Economics, Market Research, Marketing and Campaigns Management, and Business Review Reporting and Analysis",
     "R",
-    "Python",
-    "Deep understanding of statistical methods",
-    "Modeling concepts",
-    "Ability to generate insights from results of analysis",
-    "Good presentation skill",
-    "Good Communication skill",
-    "Agile",
-    "Versatile",
-    "Well adept to extended working hours"
+    "Python"
   ],
   "preferred_skills": [
-    "Experience with data management software, such as SQL"
+    "SQL"
+  ],
+  "certifications": [],
+  "education_requirements": "Bachelor to Master’s Degree in Quantitative field such as Business Analytics, Statistics, Applied Statistics, and Applied Mathematics.",
+  "experience_requirements": [
+    "Minimum of at least 1-2 years’ work experience in Statistics and Analytics",
+    "Minimum of at least 1-2 years’ work experience in Economics",
+    "Minimum of at least 1-2 years’ work experience in Market Research",
+    "Minimum of at least 1-2 years’ work experience in Marketing and Campaigns Management",
+    "Minimum of at least 1-2 years’ work experience in Business Review Reporting and Analysis"
+  ],
+  "soft_skills": [
+    "Deep understanding of statistical methods and modeling concepts",
+    "Ability to generate insights from results of analysis",
+    "Good presentation and communication skill",
+    "Agile, versatile and well adept to extended working hours"
   ]
 }

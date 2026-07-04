@@ -2,21 +2,26 @@
   "posting_id": "data10",
   "target_role": "data_scientist",
   "required_skills": [
-    "Ability to understand the lay of the business & identify opportunities for projects",
-    "Strong analytical and problem-solving skills",
     "SQL",
     "Python",
     "Advanced Excel",
+    "Power BI",
+    "Tableau"
+  ],
+  "preferred_skills": [
+    "Cloud exposure"
+  ],
+  "certifications": [],
+  "education_requirements": null,
+  "experience_requirements": [],
+  "soft_skills": [
+    "Ability to understand the lay of the business & identify opportunities for projects",
+    "Strong analytical and problem-solving skills",
     "Understanding of basic machine-learning concepts",
     "Ability to translate analysis into business insights",
-    "Power BI",
-    "Tableau",
     "Ability to manage multiple projects and priorities simultaneously",
     "Excellent stakeholder communication and storytelling skills",
     "Innovative mindset with strong attention to quality and detail",
     "High integrity, collaborative, and empathetic leadership style"
-  ],
-  "preferred_skills": [
-    "Cloud exposure"
   ]
 }

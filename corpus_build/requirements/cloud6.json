@@ -2,32 +2,25 @@
   "posting_id": "cloud6",
   "target_role": "cloud_engineering",
   "required_skills": [
-    "Bachelor’s degree in IT, Computer Science, or related field (or equivalent experience)",
-    "At least 1+ year of hands-on experience in Azure Administration or Cloud Engineering",
-    "Azure IaaS",
-    "Azure PaaS",
+    "Azure",
     "VMs",
     "App Services",
-    "Storage",
-    "Networking",
-    "Azure identity and access management (IAM)",
-    "Security best practices",
     "NSG",
-    "VPN",
-    "Routing",
-    "Firewalls",
-    "Monitoring, logging, and alerting tools in Azure",
-    "Infrastructure as Code",
-    "Understanding of cloud architecture",
-    "Deployment processes",
-    "Support processes",
-    "Analytical skills",
-    "Troubleshooting skills",
-    "Problem-solving skills",
-    "Ability to manage multiple priorities",
-    "Ability to work in a fast-paced environment"
+    "VPN"
   ],
   "preferred_skills": [
+    "Azure IAM",
+    "Infrastructure as Code",
     "Terraform"
+  ],
+  "certifications": [],
+  "education_requirements": "Bachelor’s degree in IT, Computer Science, or related field (or equivalent experience)",
+  "experience_requirements": [
+    "At least + year of hands-on experience in Azure Administration or Cloud Engineering"
+  ],
+  "soft_skills": [
+    "Understanding of cloud architecture, deployment, and support processes",
+    "Strong analytical, troubleshooting, and problem-solving skills",
+    "Ability to manage multiple priorities in a fast-paced environment"
   ]
 }

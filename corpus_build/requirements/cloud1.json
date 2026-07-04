@@ -2,24 +2,23 @@
   "posting_id": "cloud1",
   "target_role": "cloud_engineering",
   "required_skills": [
-    "Bachelor’s degree in Computer Science, Engineering, or equivalent practical experience",
-    "3+ years of experience in cloud engineering",
-    "Hands-on experience designing, operating, or supporting CI/CD platforms",
-    "Strong understanding of microservices",
-    "Strong understanding of event-driven architectures",
-    "Strong understanding of distributed systems",
-    "Experience with GitOps",
-    "Experience with Infrastructure as Code",
-    "Experience with automated delivery pipelines",
-    "Familiarity with DevSecOps practices",
-    "Familiarity with security scanning",
-    "Familiarity with compliance requirements in regulated environments",
-    "Exceptional communication skills",
-    "Proven problem-solving skills"
+    "Kubernetes",
+    "GitOps",
+    "Infrastructure as Code"
   ],
   "preferred_skills": [
-    "Strong focus on Kubernetes",
-    "Strong focus on GCP",
-    "Harness CI/CD in an enterprise environment"
+    "GCP",
+    "Harness CI/CD",
+    "DevSecOps"
+  ],
+  "certifications": [],
+  "education_requirements": "Bachelor’s degree in Computer Science, Engineering, or equivalent practical experience.",
+  "experience_requirements": "3+ years of experience in cloud engineering with a strong focus on Kubernetes and GCP (preferred).",
+  "soft_skills": [
+    "Exceptional communication skills",
+    "clear documentation",
+    "stakeholder alignment",
+    "Proven problem-solving skills",
+    "ability to operate effectively in complex, evolving environments"
   ]
 }

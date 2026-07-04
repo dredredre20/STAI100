@@ -16,6 +16,10 @@ class PostingRequirements(BaseModel):
     target_role: str
     required_skills: list[str]
     preferred_skills: list[str]
+    certifications: list[str]
+    education_requirements: str | None
+    experience_requirements: list[str]
+    soft_skills: list[str]
 
 
 def flatten_bullets(text: str) -> str:
@@ -46,19 +50,59 @@ like sub-items, tool names, or items nested under a header line (e.g. a line lik
 a separate item and must be classified individually. Do not skip or summarize away
 any line, even if it seems minor or repetitive.
 
-Classification rule: if the posting does not explicitly separate requirements into
-"required" vs. "preferred"/"nice to have" sections, treat every qualification listed
-under a general "Qualifications" or "Requirements" heading as REQUIRED by default.
-Only classify an item as "preferred" if that specific line uses hedging language
-(e.g. "a plus", "nice to have", "bonus", "preferred", "familiarity with", "exposure to").
-A hedged line found in the middle of an otherwise-required list must still be
-classified as preferred — do not drop it, and do not force it into required just
-because neighboring lines are required.
+Field routing rule: route each item into exactly ONE of the following fields,
+based on what KIND of requirement it is — do not put everything into
+required_skills/preferred_skills:
+
+- required_skills / preferred_skills: ONLY atomic, named technical skills, tools,
+  languages, frameworks, or platforms (e.g. "Python", "AWS", "PyTorch", "Terraform").
+  Do NOT include degree requirements, years-of-experience statements, soft skills,
+  or certifications here — those go in their own fields below.
+- certifications: named professional certifications (e.g. "AWS Solutions Architect",
+  "PMP", "ISTQB Certified Tester"). If the posting says a certification "is a plus"
+  and there's no explicit required/preferred split elsewhere, note it as preferred
+  by prefixing it (e.g. keep it here but note in your reasoning it's optional).
+- education_requirements: a SINGLE string summarizing the degree/education
+  requirement, if any (e.g. "Bachelor's degree in Computer Science, Statistics,
+  or related field"). Use null if the posting states no education requirement.
+- experience_requirements: a LIST of strings, one per distinct years-of-experience
+  requirement stated in the posting (e.g. ["2-5 years of experience in cloud
+  engineering"], or ["3+ years in data science", "1+ years in a leadership role"]
+  if the posting states more than one separately). Use an empty list [] if the
+  posting states no experience requirement.
+- soft_skills: interpersonal/behavioral qualities and general professional skills
+  that are not technical (e.g. "strong communication skills", "attention to detail",
+  "ability to work independently or in a team").
+
+Classification rule (required vs. preferred, applies to required_skills/
+preferred_skills/certifications only):
+- If the posting has explicit section headers separating requirements from
+  nice-to-haves (e.g. "Required Skills" vs. "Preferred"), those headers are
+  AUTHORITATIVE. Every item under "Required Skills" is required, full stop —
+  even if its wording happens to include phrases like "familiarity with" or
+  "exposure to" used as ordinary description rather than as a deliberate
+  softening signal. Do NOT reclassify an item as preferred based on wording
+  alone if it sits under an explicit required-type header.
+- Only apply hedging-language detection ("a plus," "nice to have," "bonus,"
+  "preferred," etc.) when there is NO explicit separating header — i.e. when
+  you are working from a single undifferentiated "Qualifications" list and
+  need to infer required vs. preferred from wording alone. In that case,
+  default everything to required EXCEPT lines with genuine hedging language.
+- If there IS an explicit "Preferred" or "Nice to have" header as a separate
+  section from "Required Skills," everything under it is preferred, regardless
+  of wording.
+- A hedged line found in the middle of an otherwise-required list must still be
+  classified as preferred — do not drop it, and do not force it into required
+  just because neighboring lines are required.
 
 Return ONLY a JSON object with this exact shape, no preamble, no markdown fences:
 {{
   "required_skills": ["skill1", "skill2", ...],
-  "preferred_skills": ["skill1", "skill2", ...]
+  "preferred_skills": ["skill1", "skill2", ...],
+  "certifications": ["cert1", ...],
+  "education_requirements": "string or null",
+  "experience_requirements": ["string", ...],
+  "soft_skills": ["softskill1", ...]
 }}
 
 Job posting text:
@@ -75,8 +119,12 @@ def extract_requirements_for_posting(posting: JobPosting) -> PostingRequirements
     return PostingRequirements(
         posting_id=posting.posting_id,
         target_role=posting.target_role,
-        required_skills=parsed["required_skills"],
+        required_skills=parsed.get("required_skills", []),
         preferred_skills=parsed.get("preferred_skills", []),
+        certifications=parsed.get("certifications", []),
+        education_requirements=parsed.get("education_requirements"),
+        experience_requirements=parsed.get("experience_requirements", []),
+        soft_skills=parsed.get("soft_skills", []),
     )
 
 

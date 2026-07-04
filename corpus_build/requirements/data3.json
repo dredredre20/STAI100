@@ -2,48 +2,43 @@
   "posting_id": "data3",
   "target_role": "data_scientist",
   "required_skills": [
-    "Minimum of 5 years of applicable experience",
     "Python",
     "SQL",
-    "SQL queries",
     "PowerBI",
     "plotly",
     "R Shiny",
-    "machine learning algorithms",
-    "AI algorithms",
-    "Advanced degree in Statistics, Mathematics, Computer Science, Engineering, or a related field",
-    "Bachelor’s degree with equivalent technical experience"
+    "machine learning",
+    "AI algorithms"
   ],
   "preferred_skills": [
     "statistical modeling",
-    "machine learning techniques",
     "regression",
     "clustering",
     "decision trees",
     "survival analysis",
-    "AI",
     "GenAI",
-    "advanced analytics toolkits and frameworks",
-    "Retrieval‑Augmented Generation (RAG)",
+    "advanced analytics toolkits",
+    "Retrieval‑Augmented Generation",
+    "RAG",
     "Azure",
     "AWS",
     "GCP",
-    "data processing",
-    "model development",
-    "solution deployment",
     "Tableau",
     "Qlik",
-    "open‑source libraries",
     "ggplot",
     "d3",
     "relational database models",
     "large‑scale data environments",
-    "querying and analyzing both structured and unstructured data",
-    "SQL",
     "NoSQL",
     "JSON",
-    "MongoDB",
-    "designing or implementing scalable, end‑to‑end analytics processes",
-    "governance and tracking mechanisms"
+    "MongoDB"
+  ],
+  "certifications": [],
+  "education_requirements": "Advanced degree in Statistics, Mathematics, Computer Science, Engineering, or a related field; or a Bachelor’s degree with equivalent technical experience",
+  "experience_requirements": [
+    "Minimum of 5 years of applicable experience"
+  ],
+  "soft_skills": [
+    "experience designing or implementing scalable, end‑to‑end analytics processes with appropriate governance and tracking mechanisms"
   ]
 }

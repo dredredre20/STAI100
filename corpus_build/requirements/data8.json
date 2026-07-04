@@ -2,39 +2,40 @@
   "posting_id": "data8",
   "target_role": "data_scientist",
   "required_skills": [
-    "Ability to deliver high quality and timely output in a high-pressure environment with tight customer deadlines",
-    "Proven expertise in developing Bayesian models",
-    "Proven expertise in developing machine learning models",
-    "Marketing Mix Modeling (MMM)",
-    "Prior experience in using regression models",
-    "Hierarchical modeling",
-    "Generative AI techniques",
-    "5+ years of expertise in using SQL",
+    "Bayesian modeling",
+    "machine learning models",
+    "Marketing Mix Modeling",
+    "MMM",
+    "regression models",
+    "hierarchical modeling",
+    "generative AI",
+    "SQL",
     "Python",
     "NumPy",
     "Pandas",
     "Scikit-learn",
-    "4+ years of experience designing, deploying, and optimizing data modeling and machine learning solutions",
     "SageMaker",
     "EC2",
     "S3",
     "Lambda",
-    "AWS services",
-    "Strong analytical skills",
-    "Ability to communicate complex technical concepts to internal and external stakeholders",
-    "Bachelor's degree in Computer Science, Engineering, Applied Mathematics, or related field"
+    "AWS"
   ],
   "preferred_skills": [
-    "Deep learning frameworks",
     "TensorFlow",
     "PyTorch",
     "Hugging Face",
-    "Exposure to agentic frameworks",
-    "Advanced AI platforms for data science and modeling",
-    "Prior experience with enterprise data pipelines following MLOps best practices",
-    "Ability to operate as a full stack developer",
-    "APIs",
-    "UI",
-    "Master's degree"
+    "agentic frameworks",
+    "MLOps",
+    "APIs"
+  ],
+  "certifications": [],
+  "education_requirements": "Bachelor's degree in Computer Science, Engineering, Applied Mathematics, or related field (Master's preferred).",
+  "experience_requirements": [
+    "5+ years of expertise in using SQL, Python and related libraries (NumPy, Pandas, Scikit-learn)",
+    "4+ years of experience designing, deploying, and optimizing data modeling and machine learning solutions"
+  ],
+  "soft_skills": [
+    "Ability to deliver high quality and timely output in a high-pressure environment with tight customer deadlines",
+    "Strong analytical skills with the ability to communicate complex technical concepts to internal and external stakeholders"
   ]
 }
