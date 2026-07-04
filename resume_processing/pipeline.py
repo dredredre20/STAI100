@@ -4,10 +4,16 @@ from .disambiguation import get_missing_fields, generate_target_role_clarificati
 from .validate_output import validate_resume_profile
 from llm_utils import complete
 from config import MODEL
+from pypdf import PdfReader
 
+
+def load_resume_text(pdf_path: str) -> str:
+    reader = PdfReader(pdf_path)
+    return "\n".join(page.extract_text() for page in reader.pages)
 
 
 SEP = "-" * 54
+
 
 def run_resume_intake_pipeline(
     resume_text: str,
@@ -76,3 +82,21 @@ def run_resume_intake_pipeline(
         "validated_profile": validated_profile,
         "validation_error": validation_error,
     }
+
+
+if __name__ == "__main__":
+    import sys
+
+    if len(sys.argv) < 2:
+        print("Usage: python -m resume_processing.pipeline <path_to_resume.pdf>")
+        sys.exit(1)
+
+    pdf_path = sys.argv[1]
+    resume_text = load_resume_text(pdf_path)
+    result = run_resume_intake_pipeline(resume_text)
+
+    print(f"\n{SEP}\nFINAL RESULT\n{SEP}")
+    print(f"Complete: {result['is_complete']}")
+    print(f"Validated profile: {result['validated_profile']}")
+    if result['validation_error']:
+        print(f"Validation error: {result['validation_error']}")

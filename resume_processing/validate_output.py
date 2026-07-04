@@ -1,7 +1,7 @@
 import re
 import json
 from .schema import ResumeProfile
-from .pii_redaction import redact_resume_pii
+from .pii_redaction import redact_field_pii
 from llm_utils import complete
 from config import MODEL
 
@@ -18,6 +18,7 @@ FIX_PROFILE_PROMPT = (
     "Return ONLY a corrected JSON object with the same keys. Do not explain anything."
 )
 
+
 def fix_profile_with_llm(fields: dict, error_msg: str, model: str = MODEL) -> dict:
     prompt = FIX_PROFILE_PROMPT.format(
         current_fields=json.dumps(fields, indent=2),
@@ -33,7 +34,7 @@ def fix_profile_with_llm(fields: dict, error_msg: str, model: str = MODEL) -> di
         try:
             fixed = json.loads(match.group())
             return {k: fixed.get(k) if fixed.get(k) is not None else v
-                    for k, v in fields.items()}
+                     for k, v in fields.items()}
         except json.JSONDecodeError:
             pass
     return fields
@@ -41,13 +42,17 @@ def fix_profile_with_llm(fields: dict, error_msg: str, model: str = MODEL) -> di
 
 def _redact_pii_from_profile(profile: ResumeProfile) -> ResumeProfile:
     """Checkpoint 2 — independent PII safety net over the *structured output*,
-    catches PII the LLM invented or missed on the first (raw-text) pass."""
+    catches PII the LLM invented or missed on the first (raw-text) pass.
+
+    Uses redact_field_pii(), NOT redact_resume_pii() — the latter's name-line
+    detection assumes a full document and produces false positives on isolated
+    field values (job titles, degree names, individual skills)."""
     data = profile.model_dump()
     for key in ("current_role_category", "education_level"):
         if isinstance(data.get(key), str):
-            data[key] = redact_resume_pii(data[key])
-    data["skills"] = [redact_resume_pii(s) for s in data.get("skills", [])]
-    data["certifications"] = [redact_resume_pii(c) for c in data.get("certifications", [])]
+            data[key] = redact_field_pii(data[key])
+    data["skills"] = [redact_field_pii(s) for s in data.get("skills", [])]
+    data["certifications"] = [redact_field_pii(c) for c in data.get("certifications", [])]
     return ResumeProfile(**data)
 
 
@@ -59,7 +64,6 @@ def validate_resume_profile(fields: dict, model: str = MODEL, max_retries: int =
     """
     relevant = {k: v for k, v in fields.items() if k in ResumeProfile.model_fields}
     last_error = ""
-
     for attempt in range(1, max_retries + 1):
         try:
             profile = ResumeProfile(**relevant)
@@ -69,5 +73,4 @@ def validate_resume_profile(fields: dict, model: str = MODEL, max_retries: int =
             last_error = str(e)
             if attempt < max_retries:
                 relevant = fix_profile_with_llm(relevant, last_error, model)
-
     return None, last_error
