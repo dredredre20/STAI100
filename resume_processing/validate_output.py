@@ -9,7 +9,7 @@ FIX_PROFILE_PROMPT = (
     "You are a resume-parsing assistant. The extracted fields below failed "
     "schema validation.\n\n"
     "Fix the fields so they satisfy the validation rules. For example:\n"
-    "- target_role must be exactly 'software_development' or 'cloud_engineering', "
+    "- target_role must be exactly 'data_scientist' or 'cloud_engineering', "
     "or null if genuinely unclear from the resume.\n"
     "- years_of_experience must be a number between 0 and 60.\n"
     "- Do not invent skills or certifications not present in the source text.\n\n"

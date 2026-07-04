@@ -1,0 +1,36 @@
+{
+  "posting_id": "cloud10",
+  "target_role": "cloud_engineering",
+  "required_skills": [
+    "Azure Virtual Machines",
+    "Azure Storage",
+    "Azure Virtual Networks",
+    "Azure SQL Database",
+    "Windows",
+    "VMware environments",
+    "cloud migration projects",
+    "Azure-based infrastructure solutions",
+    "Azure Automation",
+    "Terraform",
+    "Ansible",
+    "Kubernetes clusters",
+    "Azure Kubernetes Service (AKS)",
+    "DevOps practices",
+    "continuous integration and continuous deployment (CI/CD)"
+  ],
+  "preferred_skills": [
+    "Have a Bachelor’s Degree",
+    "cloud security best practices",
+    "compliance frameworks",
+    "HIPAA",
+    "PCI-DSS",
+    "GDPR",
+    "PowerShell",
+    "Bash",
+    "Python",
+    "hybrid cloud architectures",
+    "Azure Stack",
+    "Azure Arc",
+    "Azure VMware Solution"
+  ]
+}

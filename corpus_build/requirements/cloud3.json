@@ -1,0 +1,28 @@
+{
+  "posting_id": "cloud3",
+  "target_role": "cloud_engineering",
+  "required_skills": [
+    "3–5 years in Cloud Engineering & Operations",
+    "AWS",
+    "Azure",
+    "GCP",
+    "2–4 years managing CI/CD automation and production troubleshooting",
+    "CI/CD automation",
+    "production troubleshooting",
+    "Terraform",
+    "CloudFormation",
+    "ARM",
+    "Ansible",
+    "Jenkins",
+    "GitLab CI/CD",
+    "Docker",
+    "Kubernetes"
+  ],
+  "preferred_skills": [
+    "Certified Kubernetes Administrator (CKA)",
+    "AWS Certified Solutions Architect or DevOps Engineer",
+    "Azure Certified Solutions Architect or DevOps Engineer",
+    "GCP Certified Solutions Architect or DevOps Engineer",
+    "ITIL Certification"
+  ]
+}

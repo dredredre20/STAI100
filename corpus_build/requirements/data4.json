@@ -1,0 +1,24 @@
+{
+  "posting_id": "data4",
+  "target_role": "data_scientist",
+  "required_skills": [
+    "Bachelor's degree in a quantitative discipline (Data Science, Statistics, Computer Science, or related field)",
+    "2–4+ years’ experience with the full ML/AI lifecycle",
+    "Experience with data preparation to deployment and monitoring",
+    "Python",
+    "SQL",
+    "AWS",
+    "Databricks",
+    "Good communication skills",
+    "Generative AI",
+    "LLMs",
+    "Understanding of responsible AI practices (bias, fairness, data privacy)"
+  ],
+  "preferred_skills": [
+    "LLMOps",
+    "RAG",
+    "Agentic AI",
+    "Version Control (git)",
+    "CI/CD pipelines for ML model deployment"
+  ]
+}

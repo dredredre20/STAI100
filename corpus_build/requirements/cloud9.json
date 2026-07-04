@@ -1,0 +1,39 @@
+{
+  "posting_id": "cloud9",
+  "target_role": "cloud_engineering",
+  "required_skills": [
+    "At least 2 years of experience in cloud computing, IT infrastructure, or systems administration",
+    "AWS",
+    "Azure",
+    "GCP",
+    "Networking concepts (VPCs, subnets, firewalls, routing)",
+    "Python",
+    "Bash",
+    "PowerShell",
+    "Git",
+    "Infrastructure as Code (IaC)",
+    "Terraform",
+    "CloudFormation",
+    "IAM",
+    "encryption",
+    "network security",
+    "compliance standards",
+    "Cost and resource utilization and optimization of cloud solutions",
+    "AWS integration-related and data-related services",
+    "AWS API Gateway",
+    "GitHub Actions",
+    "Jenkins",
+    "AWS CI/CD services",
+    "Docker",
+    "Kubernetes",
+    "EKS",
+    "AWS Secrets Manager",
+    "AWS CloudWatch",
+    "ELK Stack",
+    "Encourage innovation and continuous improvement in cloud delivery and operations",
+    "Bachelor’s degree in Computer Science, Information Technology, Engineering, or a related field (or equivalent experience)"
+  ],
+  "preferred_skills": [
+    "Familiarity with multi-cloud or hybrid cloud environments"
+  ]
+}

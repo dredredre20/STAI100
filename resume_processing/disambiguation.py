@@ -1,5 +1,5 @@
 import json
-from schema import RESUME_FIELD_DEFINITIONS
+from .schema import RESUME_FIELD_DEFINITIONS
 from llm_utils import complete
 from config import MODEL
 
@@ -15,7 +15,7 @@ CLARIFICATION_PROMPT = (
     "You are a helpful career-readiness assistant.\n\n"
     "The user uploaded a resume. Information already extracted: {known_fields}\n"
     "You need to ask about: target_role — which career transition they're "
-    "aiming for (software development or cloud engineering).\n\n"
+    "aiming for (data scientist or cloud engineering).\n\n"
     "Write ONE short, natural, friendly question to collect this. "
     "Do not use technical terms like 'field' or 'slot'. "
     "Respond with ONLY the question."

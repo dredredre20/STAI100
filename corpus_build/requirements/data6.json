@@ -1,0 +1,21 @@
+{
+  "posting_id": "data6",
+  "target_role": "data_scientist",
+  "required_skills": [
+    "Bachelor's degree or higher in applied mathematics, statistics, computer science, physics, data science, economics, engineering or equivalent quantitative discipline",
+    "2-5 years of experience in fraud analytics or credit strategy or analytics within banking, fintech, or payments",
+    "Strong SQL for data manipulation and reporting",
+    "Proficiency in Python for analytics, modeling, and automation",
+    "Proficiency in Excel",
+    "Data visualization tools (e.g., Tableau, PowerBI)",
+    "Strong analytical problem-solving skills",
+    "Attention to detail",
+    "Excellent communication skills - able to present complex findings in a clear, concise manner"
+    ],
+  "preferred_skills": [
+    "Exposure to AI/ML frameworks (advantageous but not required)",
+    "Knowledge of machine learning techniques for fraud detection is preferred",
+    "Experience in first-party, third-party, or synthetic fraud risk management is preferred",
+    "Experience in fintech, digital banking, or technology-driven financial institutions preferred"
+  ]
+}

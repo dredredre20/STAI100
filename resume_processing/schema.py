@@ -9,7 +9,7 @@ RESUME_FIELD_DEFINITIONS = {
         "required": False,   # open field — never blocks completion
     },
     "target_role": {
-        "description": "Which career transition they're targeting: software_development or cloud_engineering",
+        "description": "Which career transition they're targeting: data_scientist or cloud_engineering",
         "required": True,    # the ONLY field that gates disambiguation
     },
     "years_of_experience": {
@@ -40,7 +40,7 @@ class ResumeProfile(BaseModel):
         description="The person's current job title or field, as stated on the resume"
     )
 
-    target_role: Optional[Literal["software_development", "cloud_engineering"]] = Field(
+    target_role: Optional[Literal["data_scientist", "cloud_engineering"]] = Field(
         default=None,
         description="Which of the two supported career transitions the person is targeting"
     )

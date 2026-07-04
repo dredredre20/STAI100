@@ -1,0 +1,38 @@
+{
+  "posting_id": "cloud4",
+  "target_role": "cloud_engineering",
+  "required_skills": [
+    "Bachelor’s degree in Computer Science or an equivalent technical discipline",
+    "At least 2 years of hands‑on experience",
+    "AWS",
+    "EC2",
+    "RDS",
+    "ELB",
+    "EBS",
+    "S3",
+    "VPC",
+    "Glacier",
+    "IAM",
+    "CloudWatch",
+    "KMS",
+    "cloud security best practices",
+    "infrastructure‑as‑code",
+    "CloudFormation",
+    "Terraform",
+    "Experience working as a DevOps Engineer",
+    "24x7 AWS production environment",
+    "configuration management tools",
+    "scripting",
+    "automation",
+    "Windows system administration",
+    "Linux system administration",
+    "system monitoring tools",
+    "strong problem‑solving skills",
+    "diagnose and resolve complex infrastructure and application deployment issues"
+  ],
+  "preferred_skills": [
+    "AWS Certified Solutions Architect (Associate)",
+    "Azure",
+    "GCP"
+  ]
+}

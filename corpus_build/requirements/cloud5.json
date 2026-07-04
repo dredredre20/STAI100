@@ -1,0 +1,40 @@
+{
+  "posting_id": "cloud5",
+  "target_role": "cloud_engineering",
+  "required_skills": [
+    "2–5 years of hands-on experience in cloud engineering",
+    "AWS",
+    "Azure",
+    "GCP",
+    "Strong understanding of cloud infrastructure",
+    "virtualization",
+    "storage",
+    "networking",
+    "security",
+    "Bachelor’s degree in Computer Science, Information Technology, or a related field",
+    "Infrastructure as Code",
+    "Terraform",
+    "CloudFormation",
+    "ARM templates",
+    "deployment automation",
+    "CI/CD pipelines",
+    "scripting languages",
+    "Python",
+    "Bash",
+    "PowerShell",
+    "monitoring and logging tools",
+    "CloudWatch",
+    "Stackdriver",
+    "Prometheus",
+    "Grafana",
+    "Strong problem-solving skills",
+    "attention to detail",
+    "ability to work independently",
+    "ability to work in a team"
+  ],
+  "preferred_skills": [
+    "AWS Solutions Architect",
+    "Azure Administrator",
+    "GCP Associate Engineer"
+    ]
+}

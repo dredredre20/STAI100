@@ -1,0 +1,30 @@
+{
+  "posting_id": "cloud2",
+  "target_role": "cloud_engineering",
+  "required_skills": [
+    "Bachelor’s degree in Computer Science, Information Technology, or a related field",
+    "Native English speaking fluency",
+    "Object-oriented programming",
+    "Openness to learning and using AI coding assistants",
+    "GitHub Copilot",
+    "Cursor",
+    "Claude",
+    "ChatGPT",
+    "Coachable mindset",
+    "Validating AI-generated code",
+    "Web development",
+    "HTML",
+    "CSS",
+    "JavaScript",
+    "Angular",
+    "Willingness to learn cloud technologies",
+    "Microservices",
+    "CI/CD tools",
+    "Analytical skills",
+    "Communication skills",
+    "Enthusiastic about learning and developing software"
+  ],
+  "preferred_skills": [
+    "Java"
+  ]
+}
