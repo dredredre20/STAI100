@@ -14,6 +14,7 @@ from gap_diff.diff_engine import run_gap_diff
 from chatbot import run_orchestrator
 
 from guardrails.input_guardrail import check_input
+from session_store.db_setup import init_db
 
 
 app = FastAPI(title="STAI100 Resume Intake API")
@@ -25,7 +26,10 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-
+@app.on_event("startup")
+def startup_event():
+    init_db()
+    
 def process_uploaded_resume(uploaded_file: Path | str, target_role: str | None = None) -> dict[str, Any]:
     temp_path = Path(uploaded_file)
     if not temp_path.exists():
