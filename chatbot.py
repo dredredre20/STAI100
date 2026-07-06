@@ -1,9 +1,9 @@
-# agent/orchestrator.py
 import json
 import ollama
 from config import MODEL, OLLAMA_BASE_URL
 from gap_diff.diff_engine import run_gap_diff
 from session_store.persistence import get_session_history
+from resource_retrieval.retrieval import search_courses
 
 TOOL_DESCRIPTIONS = """
 Available Tools:
@@ -17,9 +17,10 @@ Available Tools:
   user's history or progress over time (e.g. "have I improved?", "what was my
   score before?"), NOT for a fresh skill-gap comparison happening right now
   (use get_skill_gap for that).
-- search_courses[query] : NOT YET IMPLEMENTED. If this is the best tool for the
-  request, call it anyway — it will return a placeholder message. Do not pretend
-  to have real course recommendations; tell the user this feature is coming soon.
+- search_courses[query] : Semantically searches a course catalog for learning resources
+  relevant to a skill or topic. Use this when the user asks how to close a skill gap,
+  wants course/training recommendations, or asks "how do I learn X." Automatically
+  restricted to courses for the user's target_role.
 """
 
 SYSTEM_PROMPT_TEMPLATE = """Role: You are a career-readiness advisor agent operating in a strict state machine.
@@ -36,6 +37,12 @@ Conventions:
 - Use get_skill_gap's resume_skills/target_role parameters from the User context above unless the user's
   question implies a different target_role.
 - Be concise and conversational in your FINAL_ANSWER — this is a chat interface, not a report.
+- NEVER output raw JSON, dict syntax, or tool observation data structures in your final_answer.
+  Always translate tool results into plain natural-language sentences a person would actually
+  say out loud. For example, instead of {{"missing_required": ["ML"], "readiness_score": 60}},
+  write something like: "You're missing Machine Learning experience, and your readiness score
+  is 60 out of 100." The same applies to course results from search_courses — describe them
+  in a sentence or short list of course names, don't paste the raw dict.
 
 You must output your current phase in the STATE.phase field. Valid phases: UNDERSTAND, PLAN, EXECUTE, CRITIQUE, FINAL_ANSWER.
 
@@ -133,10 +140,51 @@ def run_tool(action: dict, session_id: str, resume_skills: list[str], target_rol
             return f"ERROR: get_progress_history failed: {e}"
 
     elif tool_name == "search_courses":
-        return "Course search is not yet implemented in this system. Tell the user this feature is coming soon."
+        query = params.get("query", "")
+        if not query:
+            return "ERROR: Missing 'query' parameter for search_courses."
+        try:
+            results = search_courses(query, target_role=target_role, top_k=5)
+            if not results:
+                return json.dumps({"courses": [], "note": "No matching courses found."})
+            return json.dumps({"courses": results})
+        except FileNotFoundError as e:
+            # Chroma store hasn't been built yet — surface a clear message
+            # rather than crashing the whole orchestrator turn.
+            return f"ERROR: Course search index not available yet ({e})."
+        except Exception as e:
+            return f"ERROR: search_courses failed: {e}"
 
     else:
         return f"ERROR: Unknown tool '{tool_name}'"
+
+
+def format_final_answer(answer: str) -> str:
+    """Safety net — if the LLM echoed a tool's raw JSON as its final_answer
+    instead of writing prose (a known failure mode on smaller models like
+    llama3.1:8b), reformat it into readable text rather than showing the
+    user a JSON blob. Falls through untouched if answer is already plain text."""
+    try:
+        data = json.loads(answer)
+    except (json.JSONDecodeError, TypeError):
+        return answer
+
+    if not isinstance(data, dict):
+        return answer
+
+    parts = []
+    if "readiness_score" in data:
+        parts.append(f"Your readiness score is {data['readiness_score']}/100.")
+    if data.get("missing_required"):
+        parts.append(f"Missing required skills: {', '.join(data['missing_required'])}.")
+    if data.get("missing_preferred"):
+        parts.append(f"Missing preferred skills: {', '.join(data['missing_preferred'])}.")
+    if data.get("courses"):
+        titles = [c.get("title", "Unknown course") for c in data["courses"]]
+        parts.append("Recommended courses: " + ", ".join(titles) + ".")
+    if data.get("recommendation"):
+        parts.append(data["recommendation"])
+    return " ".join(parts) if parts else answer
 
 
 def run_orchestrator(
@@ -210,7 +258,7 @@ def run_orchestrator(
         elif phase == "FINAL_ANSWER":
             answer = data.get("final_answer", "")
             history.append({"phase": "FINAL_ANSWER", "final_answer": answer})
-            return answer
+            return format_final_answer(answer)
 
         else:
             messages.append({"role": "user", "content": f"Invalid phase '{phase}'."})

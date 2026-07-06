@@ -1,0 +1,5 @@
+Title: CI/CD Pipelines with GitHub Actions and GitLab CI
+Provider: DataCamp
+Level: Intermediate
+Skills covered: CI/CD, DevOps, Automation Pipelines, GitHub Actions, GitLab, Testing Automation
+Description: Automate your software delivery life cycle from commit to production. Learn to design efficient build matrices, manage secrets securely, and configure deployment runners. Implement automated testing safeguards to eliminate manual operational oversight.

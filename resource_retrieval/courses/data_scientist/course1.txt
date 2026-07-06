@@ -1,0 +1,5 @@
+Title: Machine Learning Specialization
+Provider: Coursera (Stanford University)
+Level: Intermediate
+Skills covered: Machine Learning, Supervised Learning, Unsupervised Learning, Linear Regression, Logistic Regression, Regularization
+Description: Master fundamental machine learning concepts and build practical skills. Learn to implement core algorithms from scratch and apply them to real-world datasets. This series provides a broad introduction to modern AI frameworks.

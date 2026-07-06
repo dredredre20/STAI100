@@ -44,17 +44,6 @@ with st.sidebar:
     )
 
     st.divider()
-    if st.button("🗑️ Clear conversation"):
-        st.session_state["messages"] = []
-        st.session_state["pending_file_bytes"] = None
-        st.session_state["pending_file_name"] = None
-        st.session_state["awaiting_role_retry"] = False
-        st.session_state["processed_file_id"] = None
-        st.session_state["uploader_key"] += 1  # forces a fresh, empty uploader widget
-        st.session_state["profile_context"] = None
-        st.session_state["advisor_messages"] = []
-        st.rerun()
-
 
 def format_profile_summary(profile: dict) -> str:
     lines = [

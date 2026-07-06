@@ -1,0 +1,5 @@
+Title: Enterprise Cloud Security and Compliance
+Provider: AWS Training
+Level: Advanced
+Skills covered: Cloud Security, IAM, Encryption, Compliance Frameworks, Network Security, Auditing
+Description: Secure multi-tenant cloud ecosystems against contemporary threat vectors. Learn to enforce least-privilege identity access management, implement envelope encryption, and configure network firewalls. Aligns cloud architecture choices with modern regulatory compliance frameworks.

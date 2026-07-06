@@ -1,0 +1,5 @@
+Title: Tableau Desktop Certified Professional Certification Prep
+Provider: edX
+Level: Advanced
+Skills covered: Tableau, Data Visualization, Storytelling, Advanced Calculations, Dashboard Optimization
+Description: Elevate your visualization capabilities to an enterprise standard. Learn advanced calculated fields, level of detail (LOD) expressions, and performance optimization techniques for massive business datasets. Prepare comprehensively for the official technical certification exam.

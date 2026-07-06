@@ -1,0 +1,5 @@
+Title: Google Cloud Certified Associate Cloud Engineer
+Provider: Google Cloud Skills Boost
+Level: Beginner to Intermediate
+Skills covered: Google Cloud Platform, Compute Engine, Google Kubernetes Engine, BigQuery, IAM
+Description: Gain operational competence with core Google Cloud platform services. Learn to deploy applications, monitor operations, and manage enterprise access control policies across cloud resources. Focuses on the everyday command-line and console tools needed for GCP administration.

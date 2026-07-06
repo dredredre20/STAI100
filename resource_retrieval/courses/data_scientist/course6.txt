@@ -1,0 +1,5 @@
+Title: Applied Statistical Modeling for Data Science
+Provider: edX (MIT)
+Level: Advanced
+Skills covered: Statistical Modeling, Hypothesis Testing, A/B Testing, Generalized Linear Models, Probability Distributions
+Description: Bridge the gap between theoretical statistics and practical machine learning. Learn to design rigorous statistical experiments, evaluate predictive uncertainty, and run dependable corporate A/B testing frameworks. Essential for making data-driven business inferences.

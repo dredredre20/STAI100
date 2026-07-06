@@ -1,0 +1,5 @@
+Title: Microsoft Power BI Data Analyst Professional Certificate
+Provider: Coursera (Microsoft)
+Level: Intermediate
+Skills covered: Power BI, DAX, Data Modeling, Dashboard Design, Business Intelligence, Data Transformation
+Description: Learn to transform raw operational data into interactive, actionable business intelligence dashboards. Master DAX expressions to create complex calculations and model complex relational data schemas. Architect clear data stories for executive decision-making.

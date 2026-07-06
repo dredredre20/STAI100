@@ -1,0 +1,5 @@
+Title: AWS Certified Solutions Architect - Associate
+Provider: AWS Training
+Level: Intermediate
+Skills covered: AWS, Cloud Architecture, IAM, Amazon EC2, Amazon S3, VPC Networking
+Description: Design resilient, secure, and highly available architectures on the Amazon Web Services platform. Learn structural cloud best practices, focusing on network isolation, identity management, and cost optimization. Prepares candidates for the core AWS architectural exam.

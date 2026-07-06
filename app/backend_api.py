@@ -13,6 +13,9 @@ from session_store.persistence import create_session, save_resume_profile, save_
 from gap_diff.diff_engine import run_gap_diff
 from chatbot import run_orchestrator
 
+from guardrails.input_guardrail import check_input
+
+
 app = FastAPI(title="STAI100 Resume Intake API")
 app.add_middleware(
     CORSMiddleware,
@@ -132,6 +135,11 @@ class ChatRequest(BaseModel):
 
 @app.post("/chat")
 def chat(body: ChatRequest) -> dict:
+    is_safe, blocked_message = check_input(body.message) # input guardrail
+
+    if not is_safe:
+        return {"answer": blocked_message}
+
     try:
         answer = run_orchestrator(
             user_message=body.message,
@@ -143,7 +151,6 @@ def chat(body: ChatRequest) -> dict:
         return {"answer": answer}
     except Exception as exc:
         raise HTTPException(status_code=500, detail=str(exc)) from exc
-
 
 @app.get("/health")
 def health_check() -> dict[str, str]:

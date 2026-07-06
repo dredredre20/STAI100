@@ -1,0 +1,5 @@
+Title: MLOps Fundamentals: From Model to Production
+Provider: DataCamp
+Level: Advanced
+Skills covered: MLOps, Model Deployment, CI/CD, MLflow, Model Monitoring, Feature Stores
+Description: Transition your models from standalone notebooks into robust production architectures. Learn to implement automated model training pipelines, track experiments with MLflow, and monitor production systems for data drift. Focuses on bridging the gap between data science and DevOps.

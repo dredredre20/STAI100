@@ -1,0 +1,6 @@
+Title: Deep Learning Specialization
+Provider: Coursera (DeepLearning.AI)
+Level: Advanced
+Skills covered: Deep Learning, Neural Networks, Computer Vision, Natural Language Processing, Convolutional Networks, Transformers
+```text
+Description: Dive deep into the mechanics of artificial neural networks. Build and train deep architectures for computer vision and generative text tasks. Learn best practices for hyperparameter tuning and optimization.

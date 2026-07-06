@@ -1,0 +1,5 @@
+Title: Microsoft Certified: Azure Administrator Associate (AZ-104)
+Provider: Coursera (Microsoft)
+Level: Intermediate
+Skills covered: Azure, Identity Management, Cloud Storage, Virtual Networks, Azure Governance
+Description: Manage enterprise Azure cloud environments comprehensively. Learn to configure active directory domains, establish virtual network peering, and implement automated backup policies. Prepares engineers to operationalize and optimize enterprise Microsoft Azure infrastructure.

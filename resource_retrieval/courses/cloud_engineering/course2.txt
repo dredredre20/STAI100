@@ -1,0 +1,5 @@
+Title: HashiCorp Terraform Certified: Associate Path
+Provider: Coursera
+Level: Intermediate
+Skills covered: Terraform, Infrastructure as Code, State Management, Multi-Cloud Deployment, Provider Configurations
+Description: Transition from manual infrastructure provisioning to predictable Infrastructure as Code. Learn to write, plan, and apply declarative configuration files to manage distributed cloud resources safely. Prepares infrastructure engineers for the standard industry certification.

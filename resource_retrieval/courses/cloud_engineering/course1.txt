@@ -1,0 +1,5 @@
+Title: Kubernetes in Practice: From Fundamentals to Production
+Provider: edX
+Level: Advanced
+Skills covered: Kubernetes, Container Orchestration, Docker, Helm, Cluster Architecture, Microservices
+Description: Master the orchestration of containerized microservices at scale. Learn to configure pods, deployments, services, and ingress controllers while managing stateful workloads securely. Gain deep operational insight into debugging cluster environments.

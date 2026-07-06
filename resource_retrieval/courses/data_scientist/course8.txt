@@ -1,0 +1,5 @@
+Title: Big Data Fundamentals with PySpark
+Provider: Coursera (UCSD)
+Level: Intermediate
+Skills covered: PySpark, Apache Spark, Big Data processing, Distributed Computing, Cluster Management
+Description: Learn how to scale your data analysis pipelines to handle gigabytes and terabytes of information. Master the Spark DataFrame API to run distributed transformations, actions, and machine learning models. Overcome the processing limitations of single-node local environments.

@@ -1,0 +1,5 @@
+Title: Data Science with Python Career Track
+Provider: DataCamp
+Level: Beginner to Intermediate
+Skills covered: Python Programming, Pandas, NumPy, Data Cleaning, Exploratory Data Analysis, Matplotlib
+Description: Develop the core programming skills required for data analysis and predictive modeling. Learn to manipulate structured tables, clean messy data, and construct descriptive data visualizations. This path establishes a rigorous engineering foundation for analytics.

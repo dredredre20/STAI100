@@ -1,0 +1,5 @@
+Title: Monitoring and Observability with Prometheus and Grafana
+Provider: edX
+Level: Advanced
+Skills covered: Monitoring, Observability, Prometheus, Grafana, Alerting, Metrics Collection
+Description: Build comprehensive system observability strategies for distributed applications. Learn to expose system metrics, write PromQL queries, and build insightful infrastructure dashboards. Construct actionable alerting systems to identify production degradations before outages occur.
