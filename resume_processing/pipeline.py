@@ -19,6 +19,8 @@ def run_resume_intake_pipeline(
     resume_text: str,
     model: str = MODEL,
     verbose: bool = True,
+    interactive: bool = True,
+    target_role_override: str | None = None,
 ) -> dict:
     """5-stage resume intake pipeline: parse (caller-provided) → PII redact
     → extract → disambiguate (target_role only) → validate."""
@@ -32,6 +34,9 @@ def run_resume_intake_pipeline(
     if verbose: print("[2] Field Extraction")
     fields = extract_resume_fields(clean_text, model)
     if verbose: print(f"    => {fields}")
+
+    if target_role_override:
+        fields["target_role"] = target_role_override
 
     # [3] Completeness Check ──────────────────────────────────────────
     if verbose: print("[3] Completeness Check")
@@ -47,6 +52,9 @@ def run_resume_intake_pipeline(
         if not missing:
             break
         clarification_question = generate_target_role_clarification(fields, model)
+        if not interactive:
+            if verbose: print(f"    Non-interactive: cannot clarify '{clarification_question}' — stopping")
+            break
         print(f"    Bot [{round_num}/{MAX_ROUNDS}]: {clarification_question}")
         user_answer = input("    You: ").strip()
         if user_answer:
