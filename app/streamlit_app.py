@@ -16,6 +16,10 @@ if "pending_file_name" not in st.session_state:
     st.session_state["pending_file_name"] = None
 if "awaiting_role_retry" not in st.session_state:
     st.session_state["awaiting_role_retry"] = False
+if "uploader_key" not in st.session_state:
+    st.session_state["uploader_key"] = 0
+if "processed_file_id" not in st.session_state:
+    st.session_state["processed_file_id"] = None
 
 with st.sidebar:
     st.header("Settings")
@@ -45,6 +49,10 @@ with st.sidebar:
         st.session_state["pending_file_bytes"] = None
         st.session_state["pending_file_name"] = None
         st.session_state["awaiting_role_retry"] = False
+        st.session_state["processed_file_id"] = None
+        st.session_state["uploader_key"] += 1  # forces a fresh, empty uploader widget
+        st.session_state["profile_context"] = None
+        st.session_state["advisor_messages"] = []
         st.rerun()
 
 
@@ -65,12 +73,7 @@ def format_profile_summary(profile: dict) -> str:
 
 
 def stream_process_resume(file_bytes: bytes, file_name: str, target_role: str | None, status_box, response_placeholder):
-    """Consumes the /process/stream SSE endpoint. Same consumption pattern
-    as stream_faq_bot in the Oakridge lab: iterate over the response's
-    streamed lines, parse each "data: ..." event, and update the UI as
-    events arrive — except here most events are STAGE labels (shown via the
-    status box) rather than text tokens (shown via the placeholder), since
-    the pipeline produces structured data, not prose, until the very end."""
+    """Consumes the /process/stream SSE endpoint."""
     files = {"file": (file_name, file_bytes, "application/pdf")}
     data = {"target_role": target_role} if target_role else {}
 
@@ -107,12 +110,14 @@ for msg in st.session_state["messages"]:
         st.markdown(msg["content"])
 
 uploaded_file = st.file_uploader(
-    "Upload a resume PDF", type=["pdf"], label_visibility="collapsed"
+    "Upload a resume PDF", type=["pdf"], label_visibility="collapsed",
+    key=f"uploader_{st.session_state['uploader_key']}",
 )
 
-if uploaded_file is not None and st.session_state["pending_file_bytes"] is None:
+if uploaded_file is not None and uploaded_file.file_id != st.session_state["processed_file_id"]:
     st.session_state["pending_file_bytes"] = uploaded_file.getvalue()
     st.session_state["pending_file_name"] = uploaded_file.name
+    st.session_state["processed_file_id"] = uploaded_file.file_id
 
     st.session_state["messages"].append(
         {"role": "user", "content": f"📎 Uploaded resume: **{uploaded_file.name}**"}
@@ -141,10 +146,6 @@ if uploaded_file is not None and st.session_state["pending_file_bytes"] is None:
                 )
                 response_placeholder.markdown(answer_text)
                 st.session_state["messages"].append({"role": "assistant", "content": answer_text})
-                # Keep pending_file_bytes/pending_file_name set — the retry
-                # button below reuses them, so the user doesn't have to
-                # re-select the file (Streamlit's file_uploader won't
-                # re-trigger on the same file being picked again anyway).
                 st.session_state["awaiting_role_retry"] = True
 
             elif result and result.get("is_complete"):
@@ -155,6 +156,11 @@ if uploaded_file is not None and st.session_state["pending_file_bytes"] is None:
                 st.session_state["pending_file_bytes"] = None
                 st.session_state["pending_file_name"] = None
                 st.session_state["awaiting_role_retry"] = False
+                st.session_state["profile_context"] = {
+                    "session_id": result.get("session_id", "unset-session-id"),
+                    "resume_skills": profile.get("skills", []),
+                    "target_role": profile.get("target_role"),
+                }
 
             else:
                 error_text = f"Sorry, I couldn't process that resume: {result.get('validation_error') if result else 'Unknown error'}"
@@ -173,11 +179,7 @@ if uploaded_file is not None and st.session_state["pending_file_bytes"] is None:
             st.session_state["pending_file_name"] = None
 
 
-
 # ── Retry button — reuses the already-uploaded file once a target role ──
-# has been picked from the sidebar dropdown, so the user isn't forced to
-# re-select the same file (Streamlit's file_uploader won't re-fire an
-# on-upload action for an unchanged file selection anyway).
 if st.session_state["awaiting_role_retry"] and st.session_state["pending_file_bytes"] is not None:
     if not target_role:
         st.info("Select a target role in the sidebar to enable the retry button.")
@@ -199,6 +201,11 @@ if st.session_state["awaiting_role_retry"] and st.session_state["pending_file_by
                         answer_text = "Got it — here's your full profile:\n\n" + format_profile_summary(profile)
                         response_placeholder.markdown(answer_text)
                         st.session_state["messages"].append({"role": "assistant", "content": answer_text})
+                        st.session_state["profile_context"] = {
+                            "session_id": result.get("session_id", "unset-session-id"),
+                            "resume_skills": profile.get("skills", []),
+                            "target_role": profile.get("target_role"),
+                        }
                     else:
                         error_text = f"Still couldn't complete processing: {result.get('validation_error') if result else 'Unknown error'}"
                         response_placeholder.markdown(error_text)
@@ -207,3 +214,48 @@ if st.session_state["awaiting_role_retry"] and st.session_state["pending_file_by
                     st.session_state["pending_file_bytes"] = None
                     st.session_state["pending_file_name"] = None
                     st.session_state["awaiting_role_retry"] = False
+
+# ── Advisor chat — appears once a profile has been successfully processed ──
+if "profile_context" not in st.session_state:
+    st.session_state["profile_context"] = None  # {session_id, resume_skills, target_role}
+if "advisor_messages" not in st.session_state:
+    st.session_state["advisor_messages"] = []
+
+if st.session_state["profile_context"] is not None:
+    st.divider()
+    st.subheader("💬 Ask your advisor")
+    st.caption("Ask about your skill gaps, progress, or readiness for your target role.")
+
+    for msg in st.session_state["advisor_messages"]:
+        with st.chat_message(msg["role"]):
+            st.markdown(msg["content"])
+
+    advisor_input = st.chat_input("e.g. 'What skills am I missing?' or 'How is my readiness score?'")
+    if advisor_input:
+        st.session_state["advisor_messages"].append({"role": "user", "content": advisor_input})
+        with st.chat_message("user"):
+            st.markdown(advisor_input)
+
+        with st.chat_message("assistant"):
+            with st.spinner("Thinking..."):
+                try:
+                    ctx = st.session_state["profile_context"]
+                    response = requests.post(
+                        f"{st.session_state['api_base_url']}/chat",
+                        json={
+                            "message": advisor_input,
+                            "session_id": ctx["session_id"],
+                            "resume_skills": ctx["resume_skills"],
+                            "target_role": ctx["target_role"],
+                        },
+                        timeout=120,
+                    )
+                    response.raise_for_status()
+                    answer = response.json()["answer"]
+                except Exception as exc:
+                    answer = f"Something went wrong talking to the advisor: {exc}"
+                st.markdown(answer)
+                st.session_state["advisor_messages"].append({"role": "assistant", "content": answer})
+else:
+    st.divider()
+    st.info("Please upload and extract your resume details to unlock interactive chat assistance.")
