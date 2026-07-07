@@ -1,7 +1,5 @@
 import json
 import tempfile
-import time
-import traceback
 from pathlib import Path
 from typing import Any, AsyncGenerator
 
@@ -18,9 +16,6 @@ from chatbot import run_orchestrator
 from guardrails.input_guardrail import check_input
 from session_store.db_setup import init_db
 
-from config import MODEL
-from llmops.llmops_logger import log_request
-
 
 app = FastAPI(title="STAI100 Resume Intake API")
 app.add_middleware(
@@ -31,12 +26,10 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-
 @app.on_event("startup")
 def startup_event():
     init_db()
-
-
+    
 def process_uploaded_resume(uploaded_file: Path | str, target_role: str | None = None) -> dict[str, Any]:
     temp_path = Path(uploaded_file)
     if not temp_path.exists():
@@ -49,6 +42,8 @@ def process_uploaded_resume(uploaded_file: Path | str, target_role: str | None =
         target_role_override=target_role,
     )
 
+
+import traceback
 
 def persist_completed_profile(result: dict[str, Any]) -> str:
     profile = result["validated_profile"]
@@ -70,7 +65,6 @@ def process_resume(
 ):
     """Non-streaming endpoint — kept for simple/synchronous callers (e.g.
     scripts, testing) that just want the final result in one response."""
-    start_ts = time.perf_counter()
     try:
         with tempfile.NamedTemporaryFile(suffix=Path(file.filename or "resume.pdf").suffix or ".pdf", delete=False) as tmp:
             tmp.write(file.file.read())
@@ -81,26 +75,8 @@ def process_resume(
         if result.get("is_complete"):
             result["session_id"] = persist_completed_profile(result)
 
-        latency_ms = (time.perf_counter() - start_ts) * 1000
-        log_request(
-            model=MODEL,
-            prompt=f"[resume upload: {file.filename}, target_role={target_role}]",
-            completion=json.dumps(result.get("validated_profile") or result.get("clarification_question") or ""),
-            latency_ms=latency_ms,
-            guardrail_fired=False,
-            extra={"interface": "api", "endpoint": "/process"},
-        )
         return result
     except Exception as exc:  # pragma: no cover - defensive API handling
-        latency_ms = (time.perf_counter() - start_ts) * 1000
-        log_request(
-            model=MODEL,
-            prompt=f"[resume upload: {file.filename}]",
-            completion=f"ERROR: {exc}",
-            latency_ms=latency_ms,
-            guardrail_fired=False,
-            extra={"interface": "api", "endpoint": "/process", "error": True},
-        )
         raise HTTPException(status_code=500, detail=str(exc)) from exc
 
 
@@ -108,7 +84,6 @@ async def _sse_stage_generator(temp_path: Path, target_role: str | None) -> Asyn
     """Yields SSE events for each pipeline stage, then a final event with the
     full structured result. Streams stage progress, not tokens, since this
     pipeline produces structured data rather than prose until the very end."""
-    start_ts = time.perf_counter()
     stages = [
         "Reading resume...",
         "Redacting personal information...",
@@ -130,26 +105,8 @@ async def _sse_stage_generator(temp_path: Path, target_role: str | None) -> Asyn
         if result.get("is_complete"):
             result["session_id"] = persist_completed_profile(result)
 
-        latency_ms = (time.perf_counter() - start_ts) * 1000
-        log_request(
-            model=MODEL,
-            prompt=f"[resume upload (stream), target_role={target_role}]",
-            completion=json.dumps(result.get("validated_profile") or result.get("clarification_question") or ""),
-            latency_ms=latency_ms,
-            guardrail_fired=False,
-            extra={"interface": "api", "endpoint": "/process/stream"},
-        )
         yield f"data: {json.dumps({'type': 'result', 'result': result})}\n\n"
     except Exception as e:
-        latency_ms = (time.perf_counter() - start_ts) * 1000
-        log_request(
-            model=MODEL,
-            prompt=f"[resume upload (stream), target_role={target_role}]",
-            completion=f"ERROR: {e}",
-            latency_ms=latency_ms,
-            guardrail_fired=False,
-            extra={"interface": "api", "endpoint": "/process/stream", "error": True},
-        )
         yield f"data: {json.dumps({'type': 'error', 'error': str(e)})}\n\n"
     finally:
         temp_path.unlink(missing_ok=True)
@@ -182,19 +139,9 @@ class ChatRequest(BaseModel):
 
 @app.post("/chat")
 def chat(body: ChatRequest) -> dict:
-    start_ts = time.perf_counter()
+    is_safe, blocked_message = check_input(body.message) # input guardrail
 
-    is_safe, blocked_message = check_input(body.message)  # input guardrail
     if not is_safe:
-        latency_ms = (time.perf_counter() - start_ts) * 1000
-        log_request(
-            model=MODEL,
-            prompt=body.message,
-            completion=blocked_message,
-            latency_ms=latency_ms,
-            guardrail_fired=True,
-            extra={"interface": "api", "endpoint": "/chat", "session_id": body.session_id},
-        )
         return {"answer": blocked_message}
 
     try:
@@ -205,28 +152,9 @@ def chat(body: ChatRequest) -> dict:
             target_role=body.target_role,
             verbose=False,
         )
-        latency_ms = (time.perf_counter() - start_ts) * 1000
-        log_request(
-            model=MODEL,
-            prompt=body.message,
-            completion=answer,
-            latency_ms=latency_ms,
-            guardrail_fired=False,
-            extra={"interface": "api", "endpoint": "/chat", "session_id": body.session_id},
-        )
         return {"answer": answer}
     except Exception as exc:
-        latency_ms = (time.perf_counter() - start_ts) * 1000
-        log_request(
-            model=MODEL,
-            prompt=body.message,
-            completion=f"ERROR: {exc}",
-            latency_ms=latency_ms,
-            guardrail_fired=False,
-            extra={"interface": "api", "endpoint": "/chat", "session_id": body.session_id, "error": True},
-        )
         raise HTTPException(status_code=500, detail=str(exc)) from exc
-
 
 @app.get("/health")
 def health_check() -> dict[str, str]:

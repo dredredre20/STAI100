@@ -195,9 +195,7 @@ def run_orchestrator(
     max_turns: int = 10,
     verbose: bool = True,
 ) -> str:
-    """Top-level ReAct agent the user actually chats with. Delegates to
-    get_skill_gap (gap_diff), ask_database (the nested SQL ReAct agent),
-    and search_courses (stub) as tools."""
+    
     system_prompt = SYSTEM_PROMPT_TEMPLATE.format(
         tool_descriptions=TOOL_DESCRIPTIONS,
         session_id=session_id,

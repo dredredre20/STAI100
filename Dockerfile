@@ -24,6 +24,6 @@ RUN chmod +x start.sh
 
 ENV OLLAMA_BASE_URL=http://host.docker.internal:11434
 
-EXPOSE 8000 8501 5001
+EXPOSE 8000 8501
 
 CMD ["/bin/sh", "start.sh"]
