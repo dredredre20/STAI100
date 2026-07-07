@@ -23,71 +23,126 @@ Available Tools:
   restricted to courses for the user's target_role.
 """
 
-SYSTEM_PROMPT_TEMPLATE = """Role: You are a career-readiness advisor agent operating in a strict state machine.
+SYSTEM_PROMPT_TEMPLATE = """Role: You are a career-readiness advisor agent.
 You help users understand their skill gaps for a target role and track their progress.
-You must respond with ONLY a valid JSON object. Do not wrap it in markdown code blocks. Do not include any explanatory text before or after the JSON.
 {tool_descriptions}
 User context:
 - session_id: {session_id}
 - resume_skills: {resume_skills}
 - target_role: {target_role}
 
+CONVERSATION HISTORY (rolling summary + recent turns from earlier in this session):
+{conversation_history}
+---
+
+You must respond with ONLY a valid JSON object. Do not wrap it in markdown code blocks.
+Do not include any explanatory text before or after the JSON.
+
+Every response has this shape:
+{{"thought": "...", "action": {{"tool_name": "...", "parameters": {{...}}}} or null, "final_answer": "..." or null}}
+
+Exactly one of "action" or "final_answer" must be non-null. The other must be null.
+
+Use the "thought" field to actually reason step by step before deciding, covering:
+1. What is the user asking for, specifically? Use CONVERSATION HISTORY above to
+   understand follow-ups like "what about the preferred ones?" or "has that improved?"
+2. What do I already know from User context, CONVERSATION HISTORY, or prior
+   Observations in this turn? Is it enough to answer, or is something missing?
+3. If something is missing, which single tool fills that gap, and what parameters
+   does it need? (Only call a tool if you genuinely need its output — don't call a
+   tool you already have the answer from, including from CONVERSATION HISTORY.)
+4. If I already have enough information, skip the tool: set "action" to null and
+   write the final answer instead.
+Keep "thought" as short as it can be while still covering the above — a few
+sentences is normally enough, don't pad it.
+
 Conventions:
-- Only call a tool if you need more information. If you already have the answer, set next_action to null.
-- Use get_skill_gap's resume_skills/target_role parameters from the User context above unless the user's
-  question implies a different target_role.
-- Be concise and conversational in your FINAL_ANSWER — this is a chat interface, not a report.
-- NEVER output raw JSON, dict syntax, or tool observation data structures in your final_answer.
-  Always translate tool results into plain natural-language sentences a person would actually
-  say out loud. For example, instead of {{"missing_required": ["ML"], "readiness_score": 60}},
-  write something like: "You're missing Machine Learning experience, and your readiness score
-  is 60 out of 100." The same applies to course results from search_courses — describe them
+- Use get_skill_gap's resume_skills/target_role from the User context above unless
+  the user's question implies a different target_role.
+- After a tool Observation is added to the conversation, re-do this same reasoning:
+  decide if the observation is now enough to answer (go to final_answer) or if
+  another tool call is needed (only if truly necessary — avoid loops).
+- Be concise and conversational in final_answer — this is a chat interface, not a report.
+- NEVER output raw JSON, dict syntax, or tool observation data structures in
+  final_answer. Always translate tool results into plain natural-language sentences
+  a person would actually say out loud. For example, instead of
+  {{"missing_required": ["ML"], "readiness_score": 60}}, write something like:
+  "You're missing Machine Learning experience, and your readiness score is 60 out
+  of 100." The same applies to course results from search_courses — describe them
   in a sentence or short list of course names, don't paste the raw dict.
-
-You must output your current phase in the STATE.phase field. Valid phases: UNDERSTAND, PLAN, EXECUTE, CRITIQUE, FINAL_ANSWER.
-
-PHASE 1 — UNDERSTAND:
-{{"STATE": {{"phase": "UNDERSTAND", "understanding": "..."}}}}
-
-PHASE 2 — PLAN:
-{{"STATE": {{"phase": "PLAN", "plan": "..."}}}}
-
-PHASE 3 — EXECUTE:
-{{"STATE": {{"phase": "EXECUTE", "plan": "...", "next_action": {{"tool_name": "<tool>", "parameters": {{...}}}}}}}}
-
-PHASE 4 — CRITIQUE:
-{{"STATE": {{"phase": "CRITIQUE", "critique": "..."}}}}
-
-PHASE 5 — FINAL_ANSWER:
-{{"STATE": {{"phase": "FINAL_ANSWER", "final_answer": "..."}}}}
-
-RULES:
-- Flow: UNDERSTAND -> PLAN -> EXECUTE -> CRITIQUE -> (PLAN again or FINAL_ANSWER).
-- Start with UNDERSTAND on the first turn.
-- After EXECUTE, the system runs the tool and provides an observation; you then output CRITIQUE.
-- After CRITIQUE, output PLAN again if more info is needed, or FINAL_ANSWER if you have enough.
-- If you already have enough information to answer, skip next_action and go straight to FINAL_ANSWER.
 """
 
 
-def build_context(history: list) -> str:
-    if not history:
-        return "\n\n[CURRENT STATE]\nSTART. Please begin with the UNDERSTAND phase.\n\n[EXECUTION HISTORY]\nNone."
-    last = history[-1]
-    phase = last.get("phase", "")
-    if phase == "EXECUTE" and not last.get("next_action"):
-        current = "EXECUTE complete with no action. Please output FINAL_ANSWER."
-    else:
-        state_map = {
-            "UNDERSTAND": "UNDERSTAND complete. Please output PLAN.",
-            "PLAN": "PLAN complete. Please output EXECUTE with next_action.",
-            "EXECUTE": "EXECUTE complete, tool called. Please output CRITIQUE.",
-            "TOOL_RESULT": "Tool execution complete. Please output CRITIQUE.",
-            "CRITIQUE": "CRITIQUE complete. Please output PLAN (more work needed) or FINAL_ANSWER.",
-            "FINAL_ANSWER": "Task finished.",
-        }
-        current = state_map.get(phase, f"Unknown phase ({phase}).")
-    return f"\n\n[CURRENT STATE]\n{current}\n\n[EXECUTION HISTORY]\n{json.dumps(history, indent=2)}"
+from langchain_core.messages import AIMessage, HumanMessage, SystemMessage
+
+_session_histories: dict[str, list] = {}
+
+KEEP_LAST = 4  # most recent messages (2 turns) kept verbatim; older gets summarized
+
+
+def _plain_llm_call(prompt: str) -> str:
+    """Free-text (non-JSON) completion, used only for summarizing history."""
+    client = ollama.Client(host=OLLAMA_BASE_URL)
+    response = client.chat(model=MODEL, messages=[{"role": "user", "content": prompt}])
+    return response['message']['content'].strip()
+
+
+def summarize_old_history(messages: list, keep_last: int = KEEP_LAST) -> list:
+    """
+    Compact the message list progressively so it never grows unboundedly.
+    Returns at most one SystemMessage (the rolling summary) followed by the
+    most recent verbatim turns.
+    """
+    if not messages or len(messages) <= keep_last:
+        return messages
+
+    older  = messages[:-keep_last]
+    recent = messages[-keep_last:]
+
+    existing_summary = next((m.content for m in older if isinstance(m, SystemMessage)), "")
+    summarizable = [m for m in older if not isinstance(m, SystemMessage)]
+
+    if not summarizable:
+        return [SystemMessage(content=existing_summary)] + recent if existing_summary else recent
+
+    history_text = "\n".join(
+        f"{'User' if isinstance(m, HumanMessage) else 'Assistant'}: {m.content}"
+        for m in summarizable
+    )
+
+    summary_prompt = (
+        "Progressively update the summary of the conversation between a user and a "
+        "career-readiness advisor bot.\n"
+        f"Current summary: {existing_summary or 'None'}\n\n"
+        f"New turns to incorporate:\n{history_text}\n\n"
+        "Generate a concise, updated summary capturing the user's target role, "
+        "any skill gaps or readiness scores discussed, and what advice was given."
+    )
+
+    try:
+        summary = _plain_llm_call(summary_prompt)
+    except Exception as e:
+        print(f"[MEMORY WARNING] Summarization failed, falling back to recent turns: {e}")
+        return recent
+
+    return [SystemMessage(content=summary)] + recent
+
+
+def format_chat_history(messages: list) -> str:
+    """Render the rolling history (summary + recent verbatim turns) as plain
+    text suitable for injection into the system prompt."""
+    if not messages:
+        return "No previous conversation this session."
+
+    lines = []
+    for m in messages:
+        if isinstance(m, SystemMessage):
+            lines.append(f"[Summary of earlier conversation]\n{m.content}")
+        elif isinstance(m, HumanMessage):
+            lines.append(f"User: {m.content}")
+        elif isinstance(m, AIMessage):
+            lines.append(f"Assistant: {m.content}")
+    return "\n".join(lines)
 
 
 def call_llm(messages: list) -> str:
@@ -118,10 +173,6 @@ def run_tool(action: dict, session_id: str, resume_skills: list[str], target_rol
         })
 
     elif tool_name == "get_progress_history":
-        # Deterministic — no LLM in this path. Pulls saved diff_results
-        # straight from persistence.py rather than generating SQL, since a
-        # fixed "give me this session's past scores" query doesn't need
-        # free-form NL->SQL generation to answer correctly.
         try:
             rows = get_session_history(session_id)
             if not rows:
@@ -149,8 +200,6 @@ def run_tool(action: dict, session_id: str, resume_skills: list[str], target_rol
                 return json.dumps({"courses": [], "note": "No matching courses found."})
             return json.dumps({"courses": results})
         except FileNotFoundError as e:
-            # Chroma store hasn't been built yet — surface a clear message
-            # rather than crashing the whole orchestrator turn.
             return f"ERROR: Course search index not available yet ({e})."
         except Exception as e:
             return f"ERROR: search_courses failed: {e}"
@@ -161,9 +210,7 @@ def run_tool(action: dict, session_id: str, resume_skills: list[str], target_rol
 
 def format_final_answer(answer: str) -> str:
     """Safety net — if the LLM echoed a tool's raw JSON as its final_answer
-    instead of writing prose (a known failure mode on smaller models like
-    llama3.1:8b), reformat it into readable text rather than showing the
-    user a JSON blob. Falls through untouched if answer is already plain text."""
+    instead of writing prose, reformat it into readable text."""
     try:
         data = json.loads(answer)
     except (json.JSONDecodeError, TypeError):
@@ -187,7 +234,7 @@ def format_final_answer(answer: str) -> str:
     return " ".join(parts) if parts else answer
 
 
-def run_orchestrator(
+def run_agent(
     user_message: str,
     session_id: str,
     resume_skills: list[str],
@@ -195,70 +242,59 @@ def run_orchestrator(
     max_turns: int = 10,
     verbose: bool = True,
 ) -> str:
-    
+
+    session_history = _session_histories.get(session_id, [])
+    session_history = summarize_old_history(session_history)
+    conversation_history_text = format_chat_history(session_history)
+
     system_prompt = SYSTEM_PROMPT_TEMPLATE.format(
         tool_descriptions=TOOL_DESCRIPTIONS,
         session_id=session_id,
         resume_skills=json.dumps(resume_skills),
         target_role=target_role,
+        conversation_history=conversation_history_text,
     )
 
-    history = []
     messages = [
         {"role": "system", "content": system_prompt},
         {"role": "user", "content": user_message},
     ]
 
+    final_answer = None
     for turn in range(1, max_turns + 1):
         if verbose:
             print(f"\n------ TURN {turn} ------")
-        msgs = [{"role": "system", "content": system_prompt + build_context(history)}] + messages[1:]
         try:
-            raw = call_llm(msgs)
-            data = parse_json(raw)["STATE"]
+            raw = call_llm(messages)
+            data = parse_json(raw)
         except Exception as e:
             if verbose:
                 print(f"[Error] {e}")
-            return "Sorry, I ran into an error trying to answer that."
+            final_answer = "Sorry, I ran into an error trying to answer that."
+            break
 
         messages.append({"role": "assistant", "content": raw})
-        phase = data.get("phase", "")
         if verbose:
-            print(f"Phase: {phase}")
+            print(f"Thought: {data.get('thought', '')}")
 
-        if phase == "UNDERSTAND":
-            history.append({"phase": "UNDERSTAND", "understanding": data.get("understanding", "")})
-            messages.append({"role": "user", "content": "Acknowledged. Output PLAN."})
-
-        elif phase == "PLAN":
-            history.append({"phase": "PLAN", "plan": data.get("plan", "")})
-            messages.append({"role": "user", "content": "Acknowledged. Output EXECUTE with next_action."})
-
-        elif phase == "EXECUTE":
-            action = data.get("next_action")
-            if action:
-                if verbose:
-                    print(f"Action: {json.dumps(action)}")
-                history.append({"phase": "EXECUTE", "plan": data.get("plan", ""), "next_action": action})
-                result_str = run_tool(action, session_id, resume_skills, target_role)
-                if verbose:
-                    print(f"Result: {result_str[:300]}")
-                history.append({"phase": "TOOL_RESULT", "result": result_str})
-                messages.append({"role": "user", "content": f"Observation: {result_str}. Output CRITIQUE."})
-            else:
-                history.append({"phase": "EXECUTE", "plan": data.get("plan", ""), "next_action": None})
-                messages.append({"role": "user", "content": "No action needed. Output FINAL_ANSWER."})
-
-        elif phase == "CRITIQUE":
-            history.append({"phase": "CRITIQUE", "critique": data.get("critique", "")})
-            messages.append({"role": "user", "content": "Acknowledged. Output PLAN or FINAL_ANSWER."})
-
-        elif phase == "FINAL_ANSWER":
-            answer = data.get("final_answer", "")
-            history.append({"phase": "FINAL_ANSWER", "final_answer": answer})
-            return format_final_answer(answer)
-
+        action = data.get("action")
+        if action:
+            if verbose:
+                print(f"Action: {json.dumps(action)}")
+            result_str = run_tool(action, session_id, resume_skills, target_role)
+            if verbose:
+                print(f"Result: {result_str[:300]}")
+            messages.append({"role": "user", "content": f"Observation: {result_str}"})
         else:
-            messages.append({"role": "user", "content": f"Invalid phase '{phase}'."})
+            final_answer = format_final_answer(data.get("final_answer", ""))
+            break
 
-    return "I wasn't able to reach an answer within the allowed number of steps."
+    if final_answer is None:
+        final_answer = "I wasn't able to reach an answer within the allowed number of steps."
+
+    # Persist this turn into cross-call session memory.
+    session_history.append(HumanMessage(content=user_message))
+    session_history.append(AIMessage(content=final_answer))
+    _session_histories[session_id] = summarize_old_history(session_history)
+
+    return final_answer

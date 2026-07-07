@@ -11,7 +11,7 @@ from pydantic import BaseModel
 from resume_processing.pipeline import load_resume_text, run_resume_intake_pipeline
 from session_store.persistence import create_session, save_resume_profile, save_diff_result
 from gap_diff.diff_engine import run_gap_diff
-from chatbot import run_orchestrator
+from chatbot import run_agent
 
 from guardrails.input_guardrail import check_input
 from session_store.db_setup import init_db
@@ -145,7 +145,7 @@ def chat(body: ChatRequest) -> dict:
         return {"answer": blocked_message}
 
     try:
-        answer = run_orchestrator(
+        answer = run_agent(
             user_message=body.message,
             session_id=body.session_id,
             resume_skills=body.resume_skills,
