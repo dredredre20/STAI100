@@ -1,16 +1,29 @@
-# Running the Resume Parser
+# Running the Webapp
 
-From the repo root, run:
+Open 3 terminal tabs. Run these in order.
+
+## 1. MLflow 
 
 ```bash
-python -m resume_processing.pipeline path/to/resume.pdf
+mlflow server --host 0.0.0.0 --port 5001
 ```
 
-Example:
+Leave this running. View it at: http://localhost:5001
+
+## 2. Backend
+
 ```bash
-python -m resume_processing.pipeline sample_resume_juan_santos.pdf
+uvicorn app.backend_api:app --reload --port 8000
 ```
 
-Make sure Ollama is running first (`ollama list` to check).
+## 3. Frontend
 
-If it asks a follow-up question about your target role, just type your answer (data scientist or cloud engineer) and hit enter.
+```bash
+streamlit run app/streamlit_app.py
+```
+
+---
+
+Make sure Ollama is running too (`ollama list` to check).
+
+MLflow must be started before the backend, or the backend will fail to start.
