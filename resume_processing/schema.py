@@ -17,7 +17,12 @@ RESUME_FIELD_DEFINITIONS = {
         "required": False,
     },
     "skills": {
-        "description": "Technical skills mentioned in the resume, as a list",
+        "description": (
+            "A flat list of individual technical skill names, one skill per list item "
+            "(e.g. ['Python', 'SQL', 'AWS', 'Git']). Do NOT group skills into categories, "
+            "do NOT combine multiple skills into a single string, and do NOT include "
+            "category labels like 'Programming & Scripting' or 'Cloud & Infrastructure'."
+        ),
         "required": False,
     },
     "certifications": {
