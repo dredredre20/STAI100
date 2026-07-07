@@ -43,10 +43,10 @@ docker build -t stai100-app .
 ### 2. Run the container
 
 ```bash
-docker run -p 8000:8000 -p 8501:8501 stai100-app
+docker run -p 8000:8000 -p 8505:8505 stai100-app
 ```
 
 ### 3. Open the app
 
-- Frontend: http://localhost:8501
+- Frontend: http://localhost:8505
 - Backend health check: http://localhost:8000/health
