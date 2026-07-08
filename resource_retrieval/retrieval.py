@@ -5,11 +5,8 @@ from langchain_community.embeddings import FastEmbedEmbeddings
 CHROMA_PERSIST_DIR = Path(__file__).parent / "chroma_store"
 COLLECTION_NAME = "courses"
 
-# Module-level cache — the embedding model and Chroma connection are loaded
-# once per process, not once per query. FastEmbedEmbeddings() has real
-# startup cost (loads an ONNX model), so re-instantiating it on every
-# search_courses() call would be slow and wasteful in a chat loop where
-# this might get called several times per conversation.
+# the embedding model and Chroma connection are loaded
+# once per process, not once per query.
 _vectorstore: Chroma | None = None
 
 
@@ -68,9 +65,6 @@ def search_courses(query: str, target_role: str | None = None, top_k: int = 5) -
 
 
 if __name__ == "__main__":
-    # Quick manual sanity check — run this file directly to confirm
-    # retrieval actually returns sensible results before wiring it into
-    # the orchestrator.
     test_query = "I need to learn machine learning and deep learning"
     print(f"Query: {test_query!r} (target_role=data_scientist)\n")
     for course in search_courses(test_query, target_role="data_scientist", top_k=3):

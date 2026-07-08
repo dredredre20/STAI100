@@ -2,7 +2,7 @@ import json
 import ollama
 from config import MODEL, OLLAMA_BASE_URL
 from gap_diff.diff_engine import run_gap_diff
-from session_store.persistence import get_session_history
+from session_store.persistence import get_progress_history, get_latest_resume_profile
 from resource_retrieval.retrieval import search_courses
 
 TOOL_DESCRIPTIONS = """
@@ -21,6 +21,13 @@ Available Tools:
   relevant to a skill or topic. Use this when the user asks how to close a skill gap,
   wants course/training recommendations, or asks "how do I learn X." Automatically
   restricted to courses for the user's target_role.
+- get_user_profile[] : Returns this session's most recently saved resume
+  profile — skills, certifications, education level, years of experience,
+  and target_role. Use this for general questions about the user's
+  background (e.g. "what skills do I have listed?", "what's my education?",
+  "what certifications did I upload?"), NOT for readiness scores or progress
+  over time (use get_progress_history for that) and NOT for a fresh gap
+  comparison against job postings (use get_skill_gap for that).
 """
 
 SYSTEM_PROMPT_TEMPLATE = """Role: You are a career-readiness advisor agent.
@@ -174,7 +181,7 @@ def run_tool(action: dict, session_id: str, resume_skills: list[str], target_rol
 
     elif tool_name == "get_progress_history":
         try:
-            rows = get_session_history(session_id)
+            rows = get_progress_history(session_id)
             if not rows:
                 return json.dumps({"history": [], "note": "No past sessions found for this session_id."})
             trimmed = [
@@ -203,9 +210,27 @@ def run_tool(action: dict, session_id: str, resume_skills: list[str], target_rol
             return f"ERROR: Course search index not available yet ({e})."
         except Exception as e:
             return f"ERROR: search_courses failed: {e}"
+        
+    elif tool_name == "get_user_profile":
+        try:
+            profile = get_latest_resume_profile(session_id)
+            if not profile:
+                return json.dumps({"note": "No resume profile found for this session."})
+            return json.dumps({
+                "target_role": profile.get("target_role"),
+                "current_role_category": profile.get("current_role_category"),
+                "years_of_experience": profile.get("years_of_experience"),
+                "skills": json.loads(profile.get("skills") or "[]"),
+                "certifications": json.loads(profile.get("certifications") or "[]"),
+                "education_level": profile.get("education_level"),
+            })
+        except Exception as e:
+            return f"ERROR: get_user_profile failed: {e}"
 
     else:
         return f"ERROR: Unknown tool '{tool_name}'"
+    
+
 
 
 def format_final_answer(answer: str) -> str:

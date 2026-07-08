@@ -36,7 +36,7 @@ RESUME_FIELD_DEFINITIONS = {
 }
 
 
-# ── ResumeProfile — the Pydantic model ─────────────────────────────────────
+# ── ResumeProfile — Pydantic model ─────────────────────────────────────
 class ResumeProfile(BaseModel):
     model_config = ConfigDict(extra="forbid")  # rejects any unexpected field, e.g. leaked PII
 

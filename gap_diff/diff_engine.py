@@ -5,15 +5,14 @@ from gap_diff.aggregate_requirements import aggregate_requirements_for_role, Agg
 from gap_diff.skill_matching import best_fuzzy_match
 
 # Weights used to compute the overall readiness score. Required skills count
-# more heavily than preferred ones — missing a required skill should hurt the
-# score more than missing a preferred one.
+# more heavily than preferred ones 
 REQUIRED_WEIGHT = 0.8
 PREFERRED_WEIGHT = 0.2
 
 
 @dataclass
 class MatchedSkill:
-    resume_skill: str      # the skill string as it appeared on the resume
+    resume_skill: str       # the skill string as it appeared on the resume
     requirement_skill: str  # the canonical requirement skill it matched against
     match_score: float      # fuzzy match score (0-100)
     frequency: int          # how many postings requested this skill

@@ -22,28 +22,7 @@ def run_resume_intake_pipeline(
     interactive: bool = True,
     target_role_override: str | None = None,
 ) -> dict:
-    """5-stage resume intake pipeline: parse (caller-provided) → PII redact
-    → extract → disambiguate (target_role only) → validate.
-
-    interactive: if True (default, CLI usage), the clarification loop uses
-        input() to prompt the user in the terminal when target_role is
-        missing — this ONLY works when there's an actual terminal attached.
-        If False (e.g. called from a web API, where there's no stdin to
-        read from), the clarification loop is skipped entirely — input()
-        would hang a web request indefinitely waiting for input that can
-        never arrive. Instead, if target_role is still missing after
-        applying target_role_override, the function returns immediately
-        with is_complete=False and needs_clarification=True, so the caller
-        (e.g. a FastAPI endpoint) can hand the clarification_question back
-        to its own frontend and let the user answer through a normal form
-        field, then call this function again with target_role_override set.
-
-    target_role_override: if provided, used to directly fill in a missing
-        target_role without going through the clarification loop at all —
-        e.g. when the frontend already collected it via a dropdown before
-        calling the API, as in the Streamlit sidebar's target_role selector.
-    """
-
+    
     # [1] PII Redaction — checkpoint 1, pre-LLM ─────────────────────────
     if verbose: print(f"{SEP}\n[1] PII Redaction")
     clean_text = redact_resume_pii(resume_text)
@@ -54,10 +33,6 @@ def run_resume_intake_pipeline(
     fields = extract_resume_fields(clean_text, model)
     if verbose: print(f"    => {fields}")
 
-    # Apply an explicit override before checking completeness, regardless
-    # of interactive mode — this lets a caller who already knows the
-    # target_role (e.g. from a frontend dropdown) skip clarification
-    # entirely, even in interactive/CLI mode.
     if target_role_override:
         fields["target_role"] = target_role_override
 
@@ -69,9 +44,6 @@ def run_resume_intake_pipeline(
     clarification_question = None
 
     if missing and not interactive:
-        # Non-interactive mode (e.g. API): do NOT call input(). Return
-        # immediately so the caller can collect the missing field through
-        # its own UI and retry with target_role_override set.
         clarification_question = generate_target_role_clarification(fields, model)
         if verbose: print(f"    => Non-interactive mode, cannot prompt. Needs: {missing}")
         return {
@@ -84,10 +56,7 @@ def run_resume_intake_pipeline(
             "validated_profile": None,
             "validation_error": None,
         }
-
-    # [4] Clarification Loop — target_role only, capped at 3 rounds ────
-    # Only reached in interactive mode with missing fields — safe to call
-    # input() here since interactive=True implies a real terminal caller.
+    
     if missing and interactive:
         if verbose: print("[4] Clarification Loop")
         MAX_ROUNDS = 3

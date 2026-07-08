@@ -70,27 +70,9 @@ def save_diff_result(session_id: str, resume_profile_id: int, target_role: str, 
     return new_id
 
 
-def get_latest_diff_result(session_id: str) -> dict | None:
-    """Convenience fetch — most recent diff_result for a session, used by
-    the orchestrator to decide whether this is a returning user with
-    existing history to compare against."""
-    conn = get_connection()
-    row = conn.execute(
-        """SELECT * FROM diff_results
-           WHERE session_id = ?
-           ORDER BY created_at DESC LIMIT 1""",
-        (session_id,),
-    ).fetchone()
-    conn.close()
-    return dict(row) if row else None
-
-
-def get_session_history(session_id: str, limit: int = 10) -> list[dict]:
-    """Deterministic fetch of all diff_results for a session, most-recent
-    first. Used for progress/history questions ('am I improving?', 'how many
-    times have I checked?') without routing them through LLM-generated SQL —
-    same underlying data get_latest_diff_result reaches, just not limited to
-    one row, and with zero free-form query generation involved."""
+def get_progress_history(session_id: str, limit: int = 10) -> list[dict]:
+    """ Used for progress/history questions ('am I improving?', 'how many
+    times have I checked?') without routing them through LLM-generated SQL """
     conn = get_connection()
     rows = conn.execute(
         """SELECT * FROM diff_results
@@ -100,3 +82,19 @@ def get_session_history(session_id: str, limit: int = 10) -> list[dict]:
     ).fetchall()
     conn.close()
     return [dict(row) for row in rows]
+
+def get_latest_resume_profile(session_id: str) -> dict | None:
+    """Fetch this session's most recently saved resume profile — skills,
+    certifications, education, target_role, years of experience. Use this
+    for general questions about the user's background/profile, as opposed
+    to get_session_history (readiness scores over time) or get_skill_gap
+    (a fresh comparison against job requirements)."""
+    conn = get_connection()
+    row = conn.execute(
+        """SELECT * FROM resume_profiles
+           WHERE session_id = ?
+           ORDER BY created_at DESC LIMIT 1""",
+        (session_id,),
+    ).fetchone()
+    conn.close()
+    return dict(row) if row else None

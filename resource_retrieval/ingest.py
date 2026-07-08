@@ -27,8 +27,7 @@ class Course:
 
 
 def _infer_target_role(filepath: Path) -> str:
-    """Derive target_role from the immediate parent folder name.
-    Fails loudly rather than silently mis-tagging a course."""
+    # Derive target_role from the immediate parent folder name.
     parent_folder = filepath.parent.name
     if parent_folder not in FOLDER_TO_ROLE:
         raise ValueError(
@@ -112,7 +111,7 @@ def build_chroma_collection(
     persist_dir: Path = CHROMA_PERSIST_DIR,
     collection_name: str = COLLECTION_NAME,
 ) -> Chroma:
-    embeddings = FastEmbedEmbeddings()  # same embedding backend as corpus_build/ingest.py
+    embeddings = FastEmbedEmbeddings()  
     vectorstore = Chroma.from_documents(
         documents=documents,
         embedding=embeddings,
@@ -123,10 +122,6 @@ def build_chroma_collection(
 
 
 if __name__ == "__main__":
-    # This is the step corpus_build/ingest.py is missing — the functions
-    # above are correct but useless until something actually calls them.
-    # Run this file directly (python -m resource_retrieval.ingest, or
-    # python resource_retrieval/ingest.py) once to build/rebuild the index.
     courses = load_courses()
     print(f"Loaded {len(courses)} courses from {COURSES_DIR}")
     for c in courses:
