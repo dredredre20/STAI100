@@ -70,18 +70,18 @@ def save_diff_result(session_id: str, resume_profile_id: int, target_role: str, 
     return new_id
 
 
-def get_progress_history(session_id: str, limit: int = 10) -> list[dict]:
-    """ Used for progress/history questions ('am I improving?', 'how many
-    times have I checked?') without routing them through LLM-generated SQL """
-    conn = get_connection()
-    rows = conn.execute(
-        """SELECT * FROM diff_results
-           WHERE session_id = ?
-           ORDER BY created_at DESC LIMIT ?""",
-        (session_id, limit),
-    ).fetchall()
-    conn.close()
-    return [dict(row) for row in rows]
+# def get_progress_history(session_id: str, limit: int = 10) -> list[dict]:
+#     """ Used for progress/history questions ('am I improving?', 'how many
+#     times have I checked?') without routing them through LLM-generated SQL """
+#     conn = get_connection()
+#     rows = conn.execute(
+#         """SELECT * FROM diff_results
+#            WHERE session_id = ?
+#            ORDER BY created_at DESC LIMIT ?""",
+#         (session_id, limit),
+#     ).fetchall()
+#     conn.close()
+#     return [dict(row) for row in rows]
 
 def get_latest_resume_profile(session_id: str) -> dict | None:
     """Fetch this session's most recently saved resume profile — skills,

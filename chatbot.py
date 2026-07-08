@@ -11,12 +11,6 @@ Available Tools:
   aggregated job posting requirements for their target role. Returns matched/missing
   required and preferred skills, plus a readiness_score (0-100). Use this when the
   user asks what skills they need, what they're missing, or how ready they are.
-- get_progress_history[] : Returns this session's saved readiness scores from
-  past resume checks, most-recent first (each with a readiness_score, timestamp,
-  and missing_required/missing_preferred counts). Use this for anything about the
-  user's history or progress over time (e.g. "have I improved?", "what was my
-  score before?"), NOT for a fresh skill-gap comparison happening right now
-  (use get_skill_gap for that).
 - search_courses[query] : Semantically searches a course catalog for learning resources
   relevant to a skill or topic. Use this when the user asks how to close a skill gap,
   wants course/training recommendations, or asks "how do I learn X." Automatically
@@ -179,23 +173,23 @@ def run_tool(action: dict, session_id: str, resume_skills: list[str], target_rol
             "note": "missing lists truncated to top items by frequency" if len(result.missing_required) > 15 else None,
         })
 
-    elif tool_name == "get_progress_history":
-        try:
-            rows = get_progress_history(session_id)
-            if not rows:
-                return json.dumps({"history": [], "note": "No past sessions found for this session_id."})
-            trimmed = [
-                {
-                    "created_at": row.get("created_at"),
-                    "readiness_score": row.get("readiness_score"),
-                    "missing_required_count": len(json.loads(row.get("missing_required") or "[]")),
-                    "missing_preferred_count": len(json.loads(row.get("missing_preferred") or "[]")),
-                }
-                for row in rows
-            ]
-            return json.dumps({"history": trimmed})
-        except Exception as e:
-            return f"ERROR: get_progress_history failed: {e}"
+    # elif tool_name == "get_progress_history":
+    #     try:
+    #         rows = get_progress_history(session_id)
+    #         if not rows:
+    #             return json.dumps({"history": [], "note": "No past sessions found for this session_id."})
+    #         trimmed = [
+    #             {
+    #                 "created_at": row.get("created_at"),
+    #                 "readiness_score": row.get("readiness_score"),
+    #                 "missing_required_count": len(json.loads(row.get("missing_required") or "[]")),
+    #                 "missing_preferred_count": len(json.loads(row.get("missing_preferred") or "[]")),
+    #             }
+    #             for row in rows
+    #         ]
+    #         return json.dumps({"history": trimmed})
+    #     except Exception as e:
+    #         return f"ERROR: get_progress_history failed: {e}"
 
     elif tool_name == "search_courses":
         query = params.get("query", "")
