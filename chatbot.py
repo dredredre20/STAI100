@@ -2,7 +2,7 @@ import json
 import ollama
 from config import MODEL, OLLAMA_BASE_URL
 from gap_diff.diff_engine import run_gap_diff
-from session_store.persistence import get_progress_history, get_latest_resume_profile
+from session_store.persistence import get_latest_resume_profile
 from resource_retrieval.retrieval import search_courses
 
 TOOL_DESCRIPTIONS = """
