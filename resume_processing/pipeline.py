@@ -1,7 +1,9 @@
 from .pii_redaction import redact_resume_pii
 from .extract_fields import extract_resume_fields
 from .disambiguation import get_missing_fields, generate_target_role_clarification
+from .schema import RESUME_FIELD_DEFINITIONS
 from .validate_output import validate_resume_profile
+from .verify import verify_resume_text
 from llm_utils import complete
 from config import MODEL
 from pypdf import PdfReader
@@ -9,7 +11,12 @@ from pypdf import PdfReader
 
 def load_resume_text(pdf_path: str) -> str:
     reader = PdfReader(pdf_path)
-    return "\n".join(page.extract_text() for page in reader.pages)
+    page_texts = []
+    for page in reader.pages:
+        text = page.extract_text()
+        if text:
+            page_texts.append(text)
+    return "\n".join(page_texts).strip()
 
 
 SEP = "-" * 54
@@ -23,13 +30,28 @@ def run_resume_intake_pipeline(
     target_role_override: str | None = None,
 ) -> dict:
     
-    # [1] PII Redaction — checkpoint 1, pre-LLM ─────────────────────────
-    if verbose: print(f"{SEP}\n[1] PII Redaction")
+    # [1] Resume verification — reject non-resume uploads early
+    if verbose: print(f"{SEP}\n[1] Resume verification")
+    if not verify_resume_text(resume_text, model):
+        if verbose: print("    => upload rejected: not a resume")
+        return {
+            "input_length": len(resume_text),
+            "fields": {name: None for name in RESUME_FIELD_DEFINITIONS},
+            "missing_fields": list(RESUME_FIELD_DEFINITIONS.keys()),
+            "is_complete": False,
+            "needs_clarification": False,
+            "clarification_question": None,
+            "validated_profile": None,
+            "validation_error": "Uploaded document does not appear to be a resume/CV.",
+        }
+
+    # [2] PII Redaction — checkpoint 1, pre-LLM ─────────────────────────
+    if verbose: print(f"{SEP}\n[2] PII Redaction")
     clean_text = redact_resume_pii(resume_text)
     if verbose: print("    => done")
 
-    # [2] Field Extraction ────────────────────────────────────────────
-    if verbose: print("[2] Field Extraction")
+    # [3] Field Extraction ────────────────────────────────────────────
+    if verbose: print("[3] Field Extraction")
     fields = extract_resume_fields(clean_text, model)
     if verbose: print(f"    => {fields}")
 
