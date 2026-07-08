@@ -15,6 +15,7 @@ class SkillFrequency:
     total_postings: int   # total postings for this target_role
 
 
+# dataclass to hold aggregated reqs for target and preferred skills by postings (for comparison)
 @dataclass
 class AggregatedRequirements:
     target_role: str
@@ -23,6 +24,7 @@ class AggregatedRequirements:
     preferred: list[SkillFrequency] = field(default_factory=list)
 
 
+# function to load all postings based on target role, and skills
 def _load_postings_for_role(target_role: str, requirements_dir: Path = REQUIREMENTS_DIR) -> list[dict]:
     postings = []
     for filepath in sorted(requirements_dir.glob("*.json")):
@@ -32,6 +34,7 @@ def _load_postings_for_role(target_role: str, requirements_dir: Path = REQUIREME
     return postings
 
 
+# function to aggregate a list of postings into canonical skill frequencies
 def _aggregate_skill_list(postings: list[dict], field_name: str) -> list[SkillFrequency]:
     """Merge a given field ('required_skills' or 'preferred_skills') across all
     postings for a role. Fuzzy matching is used here too — different postings
@@ -41,6 +44,7 @@ def _aggregate_skill_list(postings: list[dict], field_name: str) -> list[SkillFr
     canonical_skills: list[str] = []       # display-form skill strings, in first-seen order
     counts: dict[str, int] = {}            # canonical_skill -> count
 
+    # Loop through postings and their skills, fuzzy-matching to canonical_skills
     for posting in postings:
         seen_in_this_posting = set()  # avoid double-counting if a posting somehow repeats a skill
         for raw_skill in posting.get(field_name, []):
@@ -64,6 +68,7 @@ def _aggregate_skill_list(postings: list[dict], field_name: str) -> list[SkillFr
     ]
 
 
+# function to aggregate requirements for a given target role
 def aggregate_requirements_for_role(target_role: str, requirements_dir: Path = REQUIREMENTS_DIR) -> AggregatedRequirements:
     postings = _load_postings_for_role(target_role, requirements_dir)
     if not postings:

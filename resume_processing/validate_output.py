@@ -18,7 +18,7 @@ FIX_PROFILE_PROMPT = (
     "Return ONLY a corrected JSON object with the same keys. Do not explain anything."
 )
 
-
+# function to prompt the LLM to fix a ResumeProfile dict that failed Pydantic validation
 def fix_profile_with_llm(fields: dict, error_msg: str, model: str = MODEL) -> dict:
     prompt = FIX_PROFILE_PROMPT.format(
         current_fields=json.dumps(fields, indent=2),

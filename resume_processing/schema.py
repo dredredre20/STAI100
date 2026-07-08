@@ -66,6 +66,8 @@ class ResumeProfile(BaseModel):
         default=None, description="Highest level of education completed"
     )
 
+
+    # Validators to clean and deduplicate skills and certifications, and validate years of experience
     @field_validator("skills", "certifications")
     @classmethod
     def dedupe_and_clean(cls, v: list[str]) -> list[str]:

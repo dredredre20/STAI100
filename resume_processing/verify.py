@@ -2,6 +2,7 @@ import re
 from llm_utils import complete
 from config import MODEL
 
+# prompt to verify whether uploaded file is resume/cv
 RESUME_VERIFICATION_PROMPT = (
     "You are a resume-document classifier. The user uploaded text extracted "
     "from a PDF. Determine whether the text is from a real resume or CV "
@@ -21,8 +22,10 @@ def verify_resume_text(resume_text: str, model: str = MODEL) -> bool:
     """Return True only if the uploaded text appears to be a resume/CV."""
     if not resume_text or len(resume_text.strip()) < 50:
         return False
-
+    
     lower_text = resume_text.lower()
+
+    # heuristic check for common resume keywords to avoid unnecessary LLM calls
     keywords = [
         "experience",
         "skills",

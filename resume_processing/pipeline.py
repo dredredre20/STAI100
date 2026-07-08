@@ -22,6 +22,7 @@ def load_resume_text(pdf_path: str) -> str:
 SEP = "-" * 54
 
 
+# function to run the full resume intake pipeline: verification, PII redaction, field extraction, completeness check, clarification loop, and output validation
 def run_resume_intake_pipeline(
     resume_text: str,
     model: str = MODEL,

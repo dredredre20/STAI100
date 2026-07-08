@@ -38,6 +38,7 @@ class GapDiffResult:
     readiness_score: float = 0.0   # 0-100, weighted required+preferred match
 
 
+# function to compare a candidate's resume skills against the aggregated requirements for a target role
 def _diff_skill_group(
     resume_skills: list[str],
     requirement_group: list,  # list[SkillFrequency]
@@ -67,6 +68,7 @@ def _diff_skill_group(
     return matched, missing
 
 
+# function to compute the user's readiness score based on matching and missing skills with different weights
 def _compute_readiness_score(
     matched_required: list, missing_required: list,
     matched_preferred: list, missing_preferred: list,
@@ -81,6 +83,7 @@ def _compute_readiness_score(
     return round(score, 1)
 
 
+# function to run the gap diff process for a given resume and target role
 def run_gap_diff(resume_skills: list[str], target_role: str) -> GapDiffResult:
     """Pure deterministic comparison — no LLM call. Loads the aggregated,
     frequency-weighted requirement set for target_role and diffs it against

@@ -21,6 +21,7 @@ CLARIFICATION_PROMPT = (
     "Respond with ONLY the question."
 )
 
+# function to generate a clarification question for the user to specify their target role
 def generate_target_role_clarification(filled_fields: dict, model: str = MODEL) -> str:
     known = {k: v for k, v in filled_fields.items() if v is not None and k != "target_role"}
     prompt = CLARIFICATION_PROMPT.format(
