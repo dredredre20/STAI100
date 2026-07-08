@@ -88,6 +88,7 @@ def _plain_llm_call(prompt: str) -> str:
     return response['message']['content'].strip()
 
 
+# function for summarizing old conversation history into a rolling summary, keeping only the last few turns verbatim
 def summarize_old_history(messages: list, keep_last: int = KEEP_LAST) -> list:
     """
     Compact the message list progressively so it never grows unboundedly.
@@ -129,6 +130,7 @@ def summarize_old_history(messages: list, keep_last: int = KEEP_LAST) -> list:
     return [SystemMessage(content=summary)] + recent
 
 
+# function to render the rolling history as plain text for injection into system prompt
 def format_chat_history(messages: list) -> str:
     """Render the rolling history (summary + recent verbatim turns) as plain
     text suitable for injection into the system prompt."""
@@ -157,6 +159,7 @@ def parse_json(text: str) -> dict:
     return json.loads(text)
 
 
+# function to run a tool based on the action dict returned by the model, return json result as string
 def run_tool(action: dict, session_id: str, resume_skills: list[str], target_role: str) -> str:
     tool_name = action.get("tool_name", "")
     params = action.get("parameters", {})
@@ -172,24 +175,6 @@ def run_tool(action: dict, session_id: str, resume_skills: list[str], target_rol
             "matched_required_count": len(result.matched_required),
             "note": "missing lists truncated to top items by frequency" if len(result.missing_required) > 15 else None,
         })
-
-    # elif tool_name == "get_progress_history":
-    #     try:
-    #         rows = get_progress_history(session_id)
-    #         if not rows:
-    #             return json.dumps({"history": [], "note": "No past sessions found for this session_id."})
-    #         trimmed = [
-    #             {
-    #                 "created_at": row.get("created_at"),
-    #                 "readiness_score": row.get("readiness_score"),
-    #                 "missing_required_count": len(json.loads(row.get("missing_required") or "[]")),
-    #                 "missing_preferred_count": len(json.loads(row.get("missing_preferred") or "[]")),
-    #             }
-    #             for row in rows
-    #         ]
-    #         return json.dumps({"history": trimmed})
-    #     except Exception as e:
-    #         return f"ERROR: get_progress_history failed: {e}"
 
     elif tool_name == "search_courses":
         query = params.get("query", "")
@@ -226,7 +211,7 @@ def run_tool(action: dict, session_id: str, resume_skills: list[str], target_rol
     
 
 
-
+# function to format the final answer from the model, converting raw JSON into readable text
 def format_final_answer(answer: str) -> str:
     """Safety net — if the LLM echoed a tool's raw JSON as its final_answer
     instead of writing prose, reformat it into readable text."""
@@ -253,6 +238,7 @@ def format_final_answer(answer: str) -> str:
     return " ".join(parts) if parts else answer
 
 
+# function to run the agent loop, calling the LLM and tools iteratively until a final answer is reached or max turns exceeded
 def run_agent(
     user_message: str,
     session_id: str,
