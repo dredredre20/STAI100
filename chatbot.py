@@ -173,24 +173,6 @@ def run_tool(action: dict, session_id: str, resume_skills: list[str], target_rol
             "note": "missing lists truncated to top items by frequency" if len(result.missing_required) > 15 else None,
         })
 
-    # elif tool_name == "get_progress_history":
-    #     try:
-    #         rows = get_progress_history(session_id)
-    #         if not rows:
-    #             return json.dumps({"history": [], "note": "No past sessions found for this session_id."})
-    #         trimmed = [
-    #             {
-    #                 "created_at": row.get("created_at"),
-    #                 "readiness_score": row.get("readiness_score"),
-    #                 "missing_required_count": len(json.loads(row.get("missing_required") or "[]")),
-    #                 "missing_preferred_count": len(json.loads(row.get("missing_preferred") or "[]")),
-    #             }
-    #             for row in rows
-    #         ]
-    #         return json.dumps({"history": trimmed})
-    #     except Exception as e:
-    #         return f"ERROR: get_progress_history failed: {e}"
-
     elif tool_name == "search_courses":
         query = params.get("query", "")
         if not query:
