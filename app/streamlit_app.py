@@ -6,6 +6,7 @@ st.set_page_config(page_title="STAI100 Career Readiness", page_icon="📄", layo
 st.title("📄 STAI100 Career Readiness Advisor")
 st.caption("Upload a resume PDF and I'll pull out your profile details.")
 
+# Initialize session state variables if they don't exist yet
 if "api_base_url" not in st.session_state:
     st.session_state["api_base_url"] = "http://127.0.0.1:8000"
 if "messages" not in st.session_state:
@@ -21,6 +22,8 @@ if "uploader_key" not in st.session_state:
 if "processed_file_id" not in st.session_state:
     st.session_state["processed_file_id"] = None
 
+
+# UI Sidebar for settings and target role
 with st.sidebar:
     st.header("Settings")
     st.session_state["api_base_url"] = st.text_input(
@@ -45,6 +48,7 @@ with st.sidebar:
 
     st.divider()
 
+# function to format the profile summary for display (confirmation of pdf processing)
 def format_profile_summary(profile: dict) -> str:
     lines = [
         f"**Target role:** {profile.get('target_role')}",
@@ -61,6 +65,7 @@ def format_profile_summary(profile: dict) -> str:
     return "\n\n".join(lines)
 
 
+# function for streaming the resume processing stages from the backend API
 def stream_process_resume(file_bytes: bytes, file_name: str, target_role: str | None, status_box, response_placeholder):
     """Consumes the /process/stream SSE endpoint."""
     files = {"file": (file_name, file_bytes, "application/pdf")}
@@ -93,7 +98,7 @@ def stream_process_resume(file_bytes: bytes, file_name: str, target_role: str | 
     return final_result
 
 
-# ── Render chat history ──────────────────────────────────────────────────
+# Render chat history 
 for msg in st.session_state["messages"]:
     with st.chat_message(msg["role"]):
         st.markdown(msg["content"])
@@ -103,6 +108,7 @@ uploaded_file = st.file_uploader(
     key=f"uploader_{st.session_state['uploader_key']}",
 )
 
+# if pdf file is uploaded, process it and display results
 if uploaded_file is not None and uploaded_file.file_id != st.session_state["processed_file_id"]:
     st.session_state["pending_file_bytes"] = uploaded_file.getvalue()
     st.session_state["pending_file_name"] = uploaded_file.name
@@ -127,6 +133,7 @@ if uploaded_file is not None and uploaded_file.file_id != st.session_state["proc
                 response_placeholder=response_placeholder,
             )
 
+            # confirmation on the need for target role
             if result and result.get("needs_clarification"):
                 answer_text = (
                     "I've read through your resume, but I couldn't tell which role "
@@ -137,6 +144,7 @@ if uploaded_file is not None and uploaded_file.file_id != st.session_state["proc
                 st.session_state["messages"].append({"role": "assistant", "content": answer_text})
                 st.session_state["awaiting_role_retry"] = True
 
+            # if the resume was processed successfully, display the profile summary
             elif result and result.get("is_complete"):
                 profile = result["validated_profile"]
                 answer_text = "Here's what I found in your resume:\n\n" + format_profile_summary(profile)
@@ -210,6 +218,7 @@ if "profile_context" not in st.session_state:
 if "advisor_messages" not in st.session_state:
     st.session_state["advisor_messages"] = []
 
+# render the chat adviser interface if profile is available
 if st.session_state["profile_context"] is not None:
     st.divider()
     st.subheader("💬 Ask your advisor")

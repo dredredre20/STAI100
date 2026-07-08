@@ -29,7 +29,8 @@ app.add_middleware(
 @app.on_event("startup")
 def startup_event():
     init_db()
-    
+
+# function to process uploaded resume and return structured result  
 def process_uploaded_resume(uploaded_file: Path | str, target_role: str | None = None) -> dict[str, Any]:
     temp_path = Path(uploaded_file)
     if not temp_path.exists():
@@ -45,6 +46,7 @@ def process_uploaded_resume(uploaded_file: Path | str, target_role: str | None =
 
 import traceback
 
+# function to persist completed profile to database and return session ID
 def persist_completed_profile(result: dict[str, Any]) -> str:
     profile = result["validated_profile"]
     try:
@@ -58,6 +60,7 @@ def persist_completed_profile(result: dict[str, Any]) -> str:
         raise
 
 
+# function to process uploaded resume and return structured result (non-streaming)
 @app.post("/process")
 def process_resume(
     file: UploadFile = File(...),
@@ -80,6 +83,7 @@ def process_resume(
         raise HTTPException(status_code=500, detail=str(exc)) from exc
 
 
+# function to generate SSE events for each pipeline stage and final result
 async def _sse_stage_generator(temp_path: Path, target_role: str | None) -> AsyncGenerator[str, None]:
     """Yields SSE events for each pipeline stage, then a final event with the
     full structured result. Streams stage progress, not tokens, since this
@@ -113,6 +117,7 @@ async def _sse_stage_generator(temp_path: Path, target_role: str | None) -> Asyn
         yield "data: [DONE]\n\n"
 
 
+# function to process uploaded resume and return structured result (streaming via SSE)
 @app.post("/process/stream")
 async def process_resume_stream(
     file: UploadFile = File(...),
@@ -137,6 +142,7 @@ class ChatRequest(BaseModel):
     target_role: str
 
 
+# function to handle chat messages from the user and return bot responses
 @app.post("/chat")
 def chat(body: ChatRequest) -> dict:
     is_safe, blocked_message = check_input(body.message) # input guardrail
