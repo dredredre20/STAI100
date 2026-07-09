@@ -1,10 +1,16 @@
 # Running the Webapp
 
-You can run this either locally or via Docker.
+You can view the live Proxmox deployment, run this locally, or via Docker.
 
 ---
 
-## Option A — Local 
+## Option A — Proxmox Deployment 
+
+- **Web App:** http://103.231.240.130:2151
+
+---
+
+## Option B — Local
 
 Open 3 terminal tabs. Run these in order.
 
@@ -29,12 +35,11 @@ streamlit run app/streamlit_app.py
 ```
 
 Make sure Ollama is running too (`ollama list` to check).
-
 MLflow must be started before the backend, or the backend will fail to start.
 
 ---
 
-## Option B — Docker
+## Option C — Docker
 
 ### Prerequisites
 
@@ -58,4 +63,4 @@ docker run -p 8000:8000 -p 8501:8501 -p 5001:5001 stai100-app
 
 - Frontend: http://localhost:8501
 - Backend health check: http://localhost:8000/health
-- MLflow: http://localhost:5001# Running the Webapp
+- MLflow: http://localhost:5001

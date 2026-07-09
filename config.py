@@ -1,6 +1,5 @@
 import os
 
-MODEL = "llama3.2:3b "  # swap depending on llama variant
+MODEL="gemma4:e4b"  # swap depending on llama variant
 
-# Ollama's default local server
-OLLAMA_BASE_URL = os.getenv("OLLAMA_BASE_URL", "http://localhost:11434")
+OLLAMA_BASE_URL = os.getenv("OLLAMA_BASE_URL", "http://103.231.240.155:11434")
