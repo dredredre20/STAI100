@@ -9,12 +9,12 @@ from fastapi.responses import StreamingResponse
 from pydantic import BaseModel
 
 from resume_processing.pipeline import load_resume_text, run_resume_intake_pipeline
-from session_store.persistence import create_session, save_resume_profile, save_diff_result
+from memory.db_memory import create_session, save_resume_profile, save_diff_result
 from gap_diff.diff_engine import run_gap_diff
-from chatbot import run_agent
+from react.react_agent import run_agent
 
 from guardrails.input_guardrail import check_input
-from session_store.db_setup import init_db
+from memory.db_setup import init_db
 
 import time
 import traceback

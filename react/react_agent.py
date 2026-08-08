@@ -2,8 +2,12 @@ import json
 import ollama
 from config import MODEL, OLLAMA_BASE_URL
 from gap_diff.diff_engine import run_gap_diff
-from session_store.persistence import get_latest_resume_profile
-from resource_retrieval.retrieval import search_courses
+from memory.db_memory import get_latest_resume_profile
+from memory.conversation_memory import (
+    get_formatted_session_history,
+    save_session_turn
+)
+
 
 TOOL_DESCRIPTIONS = """
 Available Tools:
@@ -11,10 +15,6 @@ Available Tools:
   aggregated job posting requirements for their target role. Returns matched/missing
   required and preferred skills, plus a readiness_score (0-100). Use this when the
   user asks what skills they need, what they're missing, or how ready they are.
-- search_courses[query] : Semantically searches a course catalog for learning resources
-  relevant to a skill or topic. Use this when the user asks how to close a skill gap,
-  wants course/training recommendations, or asks "how do I learn X." Automatically
-  restricted to courses for the user's target_role.
 - get_user_profile[] : Returns this session's most recently saved resume
   profile — skills, certifications, education level, years of experience,
   and target_role. Use this for general questions about the user's
@@ -64,100 +64,7 @@ Conventions:
   decide if the observation is now enough to answer (go to final_answer) or if
   another tool call is needed (only if truly necessary — avoid loops).
 - Be concise and conversational in final_answer — this is a chat interface, not a report.
-- NEVER output raw JSON, dict syntax, or tool observation data structures in
-  final_answer. Always translate tool results into plain natural-language sentences
-  a person would actually say out loud. For example, instead of
-  {{"missing_required": ["ML"], "readiness_score": 60}}, write something like:
-  "You're missing Machine Learning experience, and your readiness score is 60 out
-  of 100." The same applies to course results from search_courses — describe them
-  in a sentence or short list of course names, don't paste the raw dict.
 """
-
-
-from langchain_core.messages import AIMessage, HumanMessage, SystemMessage
-
-_session_histories: dict[str, list] = {}
-
-KEEP_LAST = 4  # most recent messages (2 turns) kept verbatim; older gets summarized
-
-
-def _plain_llm_call(prompt: str) -> str:
-    """Free-text (non-JSON) completion, used only for summarizing history."""
-    client = ollama.Client(host=OLLAMA_BASE_URL)
-    response = client.chat(model=MODEL, messages=[{"role": "user", "content": prompt}])
-    return response['message']['content'].strip()
-
-
-# function for summarizing old conversation history into a rolling summary, keeping only the last few turns verbatim
-def summarize_old_history(messages: list, keep_last: int = KEEP_LAST) -> list:
-    """
-    Compact the message list progressively so it never grows unboundedly.
-    Returns at most one SystemMessage (the rolling summary) followed by the
-    most recent verbatim turns.
-    """
-    if not messages or len(messages) <= keep_last:
-        return messages
-
-    older  = messages[:-keep_last]
-    recent = messages[-keep_last:]
-
-    existing_summary = next((m.content for m in older if isinstance(m, SystemMessage)), "")
-    summarizable = [m for m in older if not isinstance(m, SystemMessage)]
-
-    if not summarizable:
-        return [SystemMessage(content=existing_summary)] + recent if existing_summary else recent
-
-    history_text = "\n".join(
-        f"{'User' if isinstance(m, HumanMessage) else 'Assistant'}: {m.content}"
-        for m in summarizable
-    )
-
-    summary_prompt = (
-        "Progressively update the summary of the conversation between a user and a "
-        "career-readiness advisor bot.\n"
-        f"Current summary: {existing_summary or 'None'}\n\n"
-        f"New turns to incorporate:\n{history_text}\n\n"
-        "Generate a concise, updated summary capturing the user's target role, "
-        "any skill gaps or readiness scores discussed, and what advice was given."
-    )
-
-    try:
-        summary = _plain_llm_call(summary_prompt)
-    except Exception as e:
-        print(f"[MEMORY WARNING] Summarization failed, falling back to recent turns: {e}")
-        return recent
-
-    return [SystemMessage(content=summary)] + recent
-
-
-# function to render the rolling history as plain text for injection into system prompt
-def format_chat_history(messages: list) -> str:
-    """Render the rolling history (summary + recent verbatim turns) as plain
-    text suitable for injection into the system prompt."""
-    if not messages:
-        return "No previous conversation this session."
-
-    lines = []
-    for m in messages:
-        if isinstance(m, SystemMessage):
-            lines.append(f"[Summary of earlier conversation]\n{m.content}")
-        elif isinstance(m, HumanMessage):
-            lines.append(f"User: {m.content}")
-        elif isinstance(m, AIMessage):
-            lines.append(f"Assistant: {m.content}")
-    return "\n".join(lines)
-
-
-def call_llm(messages: list) -> str:
-    client = ollama.Client(host=OLLAMA_BASE_URL)
-    response = client.chat(model=MODEL, messages=messages, format="json")
-    return response['message']['content'].strip()
-
-
-def parse_json(text: str) -> dict:
-    text = text.strip().removeprefix("```json").removeprefix("```").removesuffix("```").strip()
-    return json.loads(text)
-
 
 # function to run a tool based on the action dict returned by the model, return json result as string
 def run_tool(action: dict, session_id: str, resume_skills: list[str], target_role: str) -> str:
@@ -175,20 +82,6 @@ def run_tool(action: dict, session_id: str, resume_skills: list[str], target_rol
             "matched_required_count": len(result.matched_required),
             "note": "missing lists truncated to top items by frequency" if len(result.missing_required) > 15 else None,
         })
-
-    elif tool_name == "search_courses":
-        query = params.get("query", "")
-        if not query:
-            return "ERROR: Missing 'query' parameter for search_courses."
-        try:
-            results = search_courses(query, target_role=target_role, top_k=5)
-            if not results:
-                return json.dumps({"courses": [], "note": "No matching courses found."})
-            return json.dumps({"courses": results})
-        except FileNotFoundError as e:
-            return f"ERROR: Course search index not available yet ({e})."
-        except Exception as e:
-            return f"ERROR: search_courses failed: {e}"
         
     elif tool_name == "get_user_profile":
         try:
@@ -248,9 +141,8 @@ def run_agent(
     verbose: bool = True,
 ) -> str:
 
-    session_history = _session_histories.get(session_id, [])
-    session_history = summarize_old_history(session_history)
-    conversation_history_text = format_chat_history(session_history)
+    # Retrieve & format memory 
+    session_history, conversation_history_text = get_formatted_session_history(session_id)
 
     system_prompt = SYSTEM_PROMPT_TEMPLATE.format(
         tool_descriptions=TOOL_DESCRIPTIONS,
@@ -297,9 +189,18 @@ def run_agent(
     if final_answer is None:
         final_answer = "I wasn't able to reach an answer within the allowed number of steps."
 
-    # Persist this turn into cross-call session memory.
-    session_history.append(HumanMessage(content=user_message))
-    session_history.append(AIMessage(content=final_answer))
-    _session_histories[session_id] = summarize_old_history(session_history)
+    # Persist turn back to memory
+    save_session_turn(session_id, session_history, user_message, final_answer)
 
     return final_answer
+
+
+def call_llm(messages: list) -> str:
+    client = ollama.Client(host=OLLAMA_BASE_URL)
+    response = client.chat(model=MODEL, messages=messages, format="json")
+    return response['message']['content'].strip()
+
+
+def parse_json(text: str) -> dict:
+    text = text.strip().removeprefix("```json").removeprefix("```").removesuffix("```").strip()
+    return json.loads(text)

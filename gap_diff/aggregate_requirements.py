@@ -1,4 +1,3 @@
-# gap_diff/aggregate_requirements.py
 import json
 from pathlib import Path
 from dataclasses import dataclass, field
