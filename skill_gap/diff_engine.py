@@ -1,8 +1,8 @@
 # gap_diff/diff_engine.py
 from dataclasses import dataclass, field
 
-from gap_diff.aggregate_requirements import aggregate_requirements_for_role, AggregatedRequirements
-from gap_diff.skill_matching import best_fuzzy_match
+from skill_gap.aggregate_requirements import aggregate_requirements_for_role, AggregatedRequirements
+from skill_gap.skill_matching import best_fuzzy_match
 
 # Weights used to compute the overall readiness score. Required skills count
 # more heavily than preferred ones 

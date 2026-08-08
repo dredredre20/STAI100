@@ -1,7 +1,7 @@
 import re
 import json
-from .schema import ResumeProfile
-from .pii_redaction import redact_field_pii
+from .resume_schema import ResumeProfile
+from guardrails.pii_redaction import redact_field_pii
 from llm_utils import complete
 from config import MODEL
 
