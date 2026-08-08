@@ -2,7 +2,7 @@ import json
 from pathlib import Path
 from dataclasses import dataclass, field
 
-from gap_diff.skill_matching import normalize_skill, best_fuzzy_match
+from skill_gap.skill_matching import normalize_skill, best_fuzzy_match
 
 REQUIREMENTS_DIR = Path(__file__).parent.parent / "postings" / "requirements"
 

@@ -1,6 +1,5 @@
 import re
 
-
 def redact_resume_pii(text: str) -> str:
     # Redact personal identifiers from raw resume text, pre-LLM-call (checkpoint 1).
 

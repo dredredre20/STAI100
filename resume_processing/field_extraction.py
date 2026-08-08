@@ -1,6 +1,6 @@
 import re
 import json
-from .schema import RESUME_FIELD_DEFINITIONS
+from .resume_schema import RESUME_FIELD_DEFINITIONS
 from llm_utils import complete
 from config import MODEL
 

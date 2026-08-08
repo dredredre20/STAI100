@@ -10,7 +10,7 @@ from pydantic import BaseModel
 
 from resume_processing.pipeline import load_resume_text, run_resume_intake_pipeline
 from memory.db_memory import create_session, save_resume_profile, save_diff_result
-from gap_diff.diff_engine import run_gap_diff
+from skill_gap.diff_engine import run_gap_diff
 from react.react_agent import run_agent
 
 from guardrails.input_guardrail import check_input

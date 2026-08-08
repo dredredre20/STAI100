@@ -1,9 +1,9 @@
-from .pii_redaction import redact_resume_pii
-from .extract_fields import extract_resume_fields
+from guardrails.pii_redaction import redact_resume_pii
+from .field_extraction import extract_resume_fields
 from .disambiguation import get_missing_fields, generate_target_role_clarification
-from .schema import RESUME_FIELD_DEFINITIONS
+from .resume_schema import RESUME_FIELD_DEFINITIONS
 from .validate_output import validate_resume_profile
-from .verify import verify_resume_text
+from guardrails.format_verification import verify_resume_text
 from llm_utils import complete
 from config import MODEL
 from pypdf import PdfReader
@@ -101,7 +101,7 @@ def run_resume_intake_pipeline(
     if verbose:
         print(f"    => {'All required fields filled' if is_complete else f'Still missing: {missing}'}")
 
-    # [5] Output Validation ───────────────────────────────────────────
+    # [4] Output Validation ───────────────────────────────────────────
     if verbose: print("[5] Output Validation")
     validated_profile = None
     validation_error = None
@@ -125,21 +125,3 @@ def run_resume_intake_pipeline(
         "validated_profile": validated_profile,
         "validation_error": validation_error,
     }
-
-
-if __name__ == "__main__":
-    import sys
-
-    if len(sys.argv) < 2:
-        print("Usage: python -m resume_processing.pipeline <path_to_resume.pdf>")
-        sys.exit(1)
-
-    pdf_path = sys.argv[1]
-    resume_text = load_resume_text(pdf_path)
-    result = run_resume_intake_pipeline(resume_text)  # interactive=True by default for CLI use
-
-    print(f"\n{SEP}\nFINAL RESULT\n{SEP}")
-    print(f"Complete: {result['is_complete']}")
-    print(f"Validated profile: {result['validated_profile']}")
-    if result['validation_error']:
-        print(f"Validation error: {result['validation_error']}")

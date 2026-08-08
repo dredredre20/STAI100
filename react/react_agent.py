@@ -1,7 +1,7 @@
 import json
 import ollama
 from config import MODEL, OLLAMA_BASE_URL
-from gap_diff.diff_engine import run_gap_diff
+from skill_gap.diff_engine import run_gap_diff
 from memory.db_memory import get_latest_resume_profile
 from memory.conversation_memory import (
     get_formatted_session_history,
