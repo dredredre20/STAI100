@@ -11,7 +11,7 @@ from ds_integration.job_fit_prediction import predict_job_matches, format_resume
 from ds_integration.job_search import get_all_postings, search_postings
 from ds_integration.skill_gap import get_skill_gap_analysis
 
-
+# Tool descriptions for the agent to use in its system prompt, each tool has an explanation of its purpose and when to use it.
 TOOL_DESCRIPTIONS = """
 Available Tools:
 - get_top_matches[] : Ranks all stored job postings against the user's resume
@@ -42,6 +42,7 @@ Available Tools:
   "what certifications did I upload?")
 """
 
+# Prompt template for the system message that contains context and instructions for the agent.
 SYSTEM_PROMPT_TEMPLATE = """Role: You are a career-readiness advisor agent.
 You help users understand their skill gaps for a target role and track their progress.
 {tool_descriptions}
@@ -84,8 +85,12 @@ Conventions:
 
 
 def _get_resume_profile_dict(session_id: str) -> dict:
-    """Fetches the saved resume profile and wraps it in the shape
-    format_resume_string() expects (a 'fields' key)."""
+    """
+    param session_id: the unique session ID for this conversation
+    return: dict of the latest resume profile for this session, or empty dict if none exists
+    Fetches the saved resume profile and wraps it in the shape
+    format_resume_string() expects (a 'fields' key).
+    """
     profile = get_latest_resume_profile(session_id)
     if not profile:
         return {}
@@ -103,6 +108,15 @@ def _get_resume_profile_dict(session_id: str) -> dict:
 
 # function to run a tool based on the action dict returned by the model, return json result as string
 def run_tool(action: dict, session_id: str, resume_skills: list[str], target_role: str) -> str:
+    """
+    param action: dict containing "tool_name" and "parameters" keys
+    param session_id: the unique session ID for this conversation   
+    param resume_skills: the list of skills from the user's resume
+    return : JSON string result of the tool execution
+    Runs the tool specified in the action dict, returning its output as a JSON string.
+    If the tool fails, returns a JSON string with an "error" key describing the failure
+    """
+
     tool_name = action.get("tool_name", "")
     params = action.get("parameters", {})
 
@@ -178,8 +192,12 @@ def run_tool(action: dict, session_id: str, resume_skills: list[str], target_rol
 
 # function to format the final answer from the model, converting raw JSON into readable text
 def format_final_answer(answer: str) -> str:
-    """Safety net — if the LLM echoed a tool's raw JSON as its final_answer
-    instead of writing prose, reformat it into readable text."""
+    """
+    param answer: the raw final answer string from the model
+    return: human-readable text version of the final answer
+    Safety net — if the LLM echoed a tool's raw JSON as its final_answer
+    instead of writing prose, reformat it into readable text.
+    """
     try:
         data = json.loads(answer)
     except (json.JSONDecodeError, TypeError):
@@ -230,6 +248,20 @@ def run_agent(
     max_turns: int = 10,
     verbose: bool = True,
 ) -> str:
+
+    """
+    param user_message: the message from the user to respond to
+    param session_id: the unique session ID for this conversation
+    param resume_skills: the list of skills from the user's resume
+    param target_role: the user's target role for career readiness
+    param max_turns: the maximum number of turns to allow before giving up
+    param verbose: whether to print debug information during the agent loop
+    return: the final answer from the agent, or an error message if it failed
+
+    This function runs the agent loop, calling the LLM and tools iteratively until a final answer is reached or 
+    the maximum number of turns is exceeded. It constructs the system prompt with user context and conversation history, 
+    then repeatedly calls the LLM to get thoughts and actions, executing tools as needed. The final answer is formatted and returned.
+    """
 
     # Retrieve & format memory
     session_history, conversation_history_text = get_formatted_session_history(session_id)
@@ -286,11 +318,23 @@ def run_agent(
 
 
 def call_llm(messages: list) -> str:
+    """
+    param messages: list of dicts representing the conversation so far
+    return : LLM's response as a string
+    This function calls the LLM with the given messages and returns its response.
+    """
+
     client = ollama.Client(host=OLLAMA_BASE_URL)
     response = client.chat(model=MODEL, messages=messages, format="json")
     return response['message']['content'].strip()
 
 
 def parse_json(text: str) -> dict:
+    """
+    param text: raw text from the LLM that is expected to be a JSON object
+    return: parsed JSON as a dict
+    This function parses the LLM response text, cleaning it and returns the json object.
+    """
+
     text = text.strip().removeprefix("```json").removeprefix("```").removesuffix("```").strip()
     return json.loads(text)

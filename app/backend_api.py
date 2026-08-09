@@ -192,6 +192,11 @@ class ChatRequest(BaseModel):
 # Function to handle chat messages from the user and return bot responses
 @app.post("/chat")
 def chat(body: ChatRequest) -> dict:
+    """
+    This endpoint handles chat messages from the user and returns responses from the bot. 
+    It checks the input for safety, runs the agent to generate a response, and logs the request details. 
+    If an error occurs, it raises an HTTPException with a 500 status code.
+    """
 
     start_ts = time.perf_counter()
 
