@@ -23,7 +23,7 @@ if "processed_file_id" not in st.session_state:
     st.session_state["processed_file_id"] = None
 
 
-# UI Sidebar for settings and target role
+# UI Sidebar for settings and target role.
 with st.sidebar:
     st.header("Settings")
     st.session_state["api_base_url"] = st.text_input(
@@ -49,13 +49,14 @@ with st.sidebar:
 
     st.divider()
 
-# function to format the profile summary for display (confirmation of pdf processing)
 def format_profile_summary(profile: dict) -> str:
-    """
-    param profile: dict containing the extracted profile information from the resume
-    return: formatted string summarizing the profile details
+    """Format the extracted resume profile into a readable summary for the UI.
 
-    For example, it will include target role, current role, years of experience, education level, skills, and certifications.
+    Args:
+        profile: A dictionary containing the validated resume profile fields.
+
+    Returns:
+        A multi-line string describing the main profile attributes.
     """
     lines = [
         f"**Target role:** {profile.get('target_role')}",
@@ -72,14 +73,18 @@ def format_profile_summary(profile: dict) -> str:
     return "\n\n".join(lines)
 
 
-# function for streaming the resume processing stages from the backend API
 def stream_process_resume(file_bytes: bytes, file_name: str, target_role: str | None, status_box, response_placeholder):
-    """
-    param file_bytes: bytes of the uploaded resume PDF
-    param file_name: name of the uploaded resume PDF
-    return: final result dict from the backend API after processing the resume
+    """Stream resume-processing events from the backend and return the final result.
 
-    Consumes the /process/stream SSE endpoint.
+    Args:
+        file_bytes: Raw bytes of the uploaded PDF file.
+        file_name: Original filename of the uploaded PDF.
+        target_role: Optional target role override for the backend pipeline.
+        status_box: Streamlit status widget used to show progress.
+        response_placeholder: Streamlit placeholder used to display messages.
+
+    Returns:
+        The final processing result dictionary emitted by the backend.
     """
     files = {"file": (file_name, file_bytes, "application/pdf")}
     data = {"target_role": target_role} if target_role else {}
@@ -112,7 +117,7 @@ def stream_process_resume(file_bytes: bytes, file_name: str, target_role: str | 
     return final_result
 
 
-# Render chat history 
+# Render chat history from the current session.
 for msg in st.session_state["messages"]:
     with st.chat_message(msg["role"]):
         st.markdown(msg["content"])
@@ -122,7 +127,7 @@ uploaded_file = st.file_uploader(
     key=f"uploader_{st.session_state['uploader_key']}",
 )
 
-# if pdf file is uploaded, process it and display results
+# Process a newly uploaded PDF and display the result in the chat UI.
 if uploaded_file is not None and uploaded_file.file_id != st.session_state["processed_file_id"]:
     st.session_state["pending_file_bytes"] = uploaded_file.getvalue()
     st.session_state["pending_file_name"] = uploaded_file.name
@@ -191,7 +196,7 @@ if uploaded_file is not None and uploaded_file.file_id != st.session_state["proc
             st.session_state["pending_file_name"] = None
 
 
-# ── Retry button — reuses the already-uploaded file once a target role ──
+# Retry button for a previously uploaded file once the user selects a target role.
 if st.session_state["awaiting_role_retry"] and st.session_state["pending_file_bytes"] is not None:
     if not target_role:
         st.info("Select a target role in the sidebar to enable the retry button.")
@@ -227,7 +232,7 @@ if st.session_state["awaiting_role_retry"] and st.session_state["pending_file_by
                     st.session_state["pending_file_name"] = None
                     st.session_state["awaiting_role_retry"] = False
 
-# ── Advisor chat — appears once a profile has been successfully processed ──
+# Advisor chat appears once a profile has been successfully processed.
 if "profile_context" not in st.session_state:
     st.session_state["profile_context"] = None  # {session_id, resume_skills, target_role}
 if "advisor_messages" not in st.session_state:

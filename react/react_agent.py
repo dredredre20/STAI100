@@ -97,11 +97,14 @@ Conventions:
 
 
 def _get_resume_profile_dict(session_id: str) -> dict:
-    """
-    param session_id: the unique session ID for this conversation
-    return: dict of the latest resume profile for this session, or empty dict if none exists
-    Fetches the saved resume profile and wraps it in the shape
-    format_resume_string() expects (a 'fields' key).
+    """Load the latest saved resume profile for a session in the shape expected by the embedding helpers.
+
+    Args:
+        session_id: Unique identifier for the current conversation.
+
+    Returns:
+        A dictionary containing a "fields" key with the resume attributes required by
+        format_resume_string(), or an empty dictionary when no profile is available.
     """
     profile = get_latest_resume_profile(session_id)
     if not profile:
@@ -118,15 +121,17 @@ def _get_resume_profile_dict(session_id: str) -> dict:
     }
 
 
-# function to run a tool based on the action dict returned by the model, return json result as string
 def run_tool(action: dict, session_id: str, resume_skills: list[str], target_role: str) -> str:
-    """
-    param action: dict containing "tool_name" and "parameters" keys
-    param session_id: the unique session ID for this conversation   
-    param resume_skills: the list of skills from the user's resume
-    return : JSON string result of the tool execution
-    Runs the tool specified in the action dict, returning its output as a JSON string.
-    If the tool fails, returns a JSON string with an "error" key describing the failure
+    """Execute the requested tool and return its result as a JSON string.
+
+    Args:
+        action: Dictionary with "tool_name" and "parameters" keys describing the tool call.
+        session_id: Unique identifier for the current conversation.
+        resume_skills: List of skills from the saved resume profile.
+        target_role: Target role from the saved resume profile.
+
+    Returns:
+        A JSON-formatted string containing either the tool output or an error message.
     """
 
     tool_name = action.get("tool_name", "")
@@ -218,13 +223,18 @@ def run_tool(action: dict, session_id: str, resume_skills: list[str], target_rol
 
 
 
-# function to format the final answer from the model, converting raw JSON into readable text
 def format_final_answer(answer: str) -> str:
-    """
-    param answer: the raw final answer string from the model
-    return: human-readable text version of the final answer
-    Safety net — if the LLM echoed a tool's raw JSON as its final_answer
-    instead of writing prose, reformat it into readable text.
+    """Convert a model-produced JSON payload into a readable text response.
+
+    This acts as a safety net for cases where the LLM returns JSON instead of prose for its
+    final answer. The function extracts the most relevant fields and formats them into a compact
+    natural-language summary.
+
+    Args:
+        answer: Raw final-answer text returned by the model.
+
+    Returns:
+        A human-readable string suitable for display to the user.
     """
     try:
         data = json.loads(answer)
@@ -267,7 +277,6 @@ def format_final_answer(answer: str) -> str:
     return " ".join(parts) if parts else answer
 
 
-# function to run the agent loop, calling the LLM and tools iteratively until a final answer is reached or max turns exceeded
 def run_agent(
     user_message: str,
     session_id: str,
@@ -277,18 +286,23 @@ def run_agent(
     verbose: bool = True,
 ) -> str:
 
-    """
-    param user_message: the message from the user to respond to
-    param session_id: the unique session ID for this conversation
-    param resume_skills: the list of skills from the user's resume
-    param target_role: the user's target role for career readiness
-    param max_turns: the maximum number of turns to allow before giving up
-    param verbose: whether to print debug information during the agent loop
-    return: the final answer from the agent, or an error message if it failed
+    """Run the agent loop by alternating between LLM reasoning and tool execution.
 
-    This function runs the agent loop, calling the LLM and tools iteratively until a final answer is reached or 
-    the maximum number of turns is exceeded. It constructs the system prompt with user context and conversation history, 
-    then repeatedly calls the LLM to get thoughts and actions, executing tools as needed. The final answer is formatted and returned.
+    The function builds a system prompt with the available tool descriptions and session context,
+    then repeatedly asks the model for a thought/action pair. If a tool is required, it executes
+    the tool and feeds the observation back into the conversation. Once the model produces a
+    final answer, the result is formatted and persisted to session memory.
+
+    Args:
+        user_message: The latest user message to respond to.
+        session_id: Unique identifier for the current conversation.
+        resume_skills: The list of skills from the saved resume profile.
+        target_role: The target role from the saved resume profile.
+        max_turns: Maximum number of reasoning turns before stopping.
+        verbose: Whether to print progress information during execution.
+
+    Returns:
+        The final answer string returned to the user, or an error message if the loop fails.
     """
 
     # Retrieve & format memory
@@ -346,10 +360,13 @@ def run_agent(
 
 
 def call_llm(messages: list) -> str:
-    """
-    param messages: list of dicts representing the conversation so far
-    return : LLM's response as a string
-    This function calls the LLM with the given messages and returns its response.
+    """Send the current conversation to the configured LLM and return the raw response.
+
+    Args:
+        messages: Conversation history represented as a list of role/content dictionaries.
+
+    Returns:
+        The model's text response as a string.
     """
 
     client = ollama.Client(host=OLLAMA_BASE_URL)
@@ -358,10 +375,15 @@ def call_llm(messages: list) -> str:
 
 
 def parse_json(text: str) -> dict:
-    """
-    param text: raw text from the LLM that is expected to be a JSON object
-    return: parsed JSON as a dict
-    This function parses the LLM response text, cleaning it and returns the json object.
+    """Parse a model response that is expected to contain JSON.
+
+    The function strips optional markdown code fences and returns the parsed dictionary.
+
+    Args:
+        text: Raw text from the LLM response.
+
+    Returns:
+        A dictionary parsed from the JSON payload.
     """
 
     text = text.strip().removeprefix("```json").removeprefix("```").removesuffix("```").strip()

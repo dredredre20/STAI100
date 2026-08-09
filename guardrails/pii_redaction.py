@@ -1,7 +1,18 @@
 import re
 
+
 def redact_resume_pii(text: str) -> str:
-    # Redact personal identifiers from raw resume text, pre-LLM-call (checkpoint 1).
+    """Redact common personally identifiable information from raw resume text.
+
+    This is intended as a pre-LLM safety step so sensitive contact details are removed before
+    the resume is passed to the extraction model.
+
+    Args:
+        text: Raw resume text to sanitize.
+
+    Returns:
+        A redacted version of the text with emails, phone numbers, URLs, and a leading name removed.
+    """
 
     text = re.sub(
         r'\b[A-Za-z0-9._%+\-]+@[A-Za-z0-9.\-]+\.[A-Za-z]{2,}\b',
@@ -23,8 +34,16 @@ def redact_resume_pii(text: str) -> str:
 
 
 def redact_field_pii(text: str) -> str:
-    """Redact PII from a single already-extracted structured field value
-    (checkpoint 2 — the independent safety net over ResumeProfile output).
+    """Redact PII from a single already-extracted structured field value.
+
+    This is a second-stage safety net applied after structured output has been produced, so
+    any PII that survives the first pass is still removed before storage or downstream use.
+
+    Args:
+        text: A single field value such as a skill, certification, or education field.
+
+    Returns:
+        The redacted field value.
     """
 
     text = re.sub(

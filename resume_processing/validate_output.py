@@ -18,8 +18,17 @@ FIX_PROFILE_PROMPT = (
     "Return ONLY a corrected JSON object with the same keys. Do not explain anything."
 )
 
-# function to prompt the LLM to fix a ResumeProfile dict that failed Pydantic validation
 def fix_profile_with_llm(fields: dict, error_msg: str, model: str = MODEL) -> dict:
+    """Ask the LLM to repair a profile that failed schema validation.
+
+    Args:
+        fields: The partially extracted field dictionary that failed validation.
+        error_msg: The validation error message returned by Pydantic.
+        model: Model identifier used for the LLM request.
+
+    Returns:
+        A corrected field dictionary when the LLM can repair it; otherwise the original fields.
+    """
     prompt = FIX_PROFILE_PROMPT.format(
         current_fields=json.dumps(fields, indent=2),
         error_message=error_msg,
@@ -41,12 +50,11 @@ def fix_profile_with_llm(fields: dict, error_msg: str, model: str = MODEL) -> di
 
 
 def _redact_pii_from_profile(profile: ResumeProfile) -> ResumeProfile:
-    """Checkpoint 2 — independent PII safety net over the *structured output*,
-    catches PII the LLM invented or missed on the first (raw-text) pass.
+    """Apply a second PII redaction pass to the validated structured profile.
 
-    Uses redact_field_pii(), NOT redact_resume_pii() — the latter's name-line
-    detection assumes a full document and produces false positives on isolated
-    field values (job titles, degree names, individual skills)."""
+    This acts as a safety net for values that may have been invented or missed during the
+    initial raw-text extraction step.
+    """
     data = profile.model_dump()
     for key in ("current_role_category", "education_level"):
         if isinstance(data.get(key), str):
@@ -57,10 +65,20 @@ def _redact_pii_from_profile(profile: ResumeProfile) -> ResumeProfile:
 
 
 def validate_resume_profile(fields: dict, model: str = MODEL, max_retries: int = 3):
-    """
-    Try to build a ResumeProfile from fields. On each schema-validation
-    failure, feed the exact Pydantic error back to the LLM to correct
-    itself, then retry. Returns (ResumeProfile | None, final_error_msg).
+    """Validate and repair a structured resume profile.
+
+    The function attempts to construct a ResumeProfile from the extracted fields. When schema
+    validation fails, it sends the exact error back to the LLM and retries up to the specified
+    number of times.
+
+    Args:
+        fields: Extracted field dictionary to validate.
+        model: Model identifier used for repair prompts.
+        max_retries: Maximum number of validation repair attempts.
+
+    Returns:
+        A tuple of (profile, error_message), where profile is a ResumeProfile or None and
+        error_message contains the final validation error if any.
     """
     relevant = {k: v for k, v in fields.items() if k in ResumeProfile.model_fields}
     last_error = ""

@@ -14,13 +14,24 @@ RESUME_EXTRACTION_PROMPT = (
     "Use null for any information not present in the text. Do not guess."
 )
 
-# function to extract structured fields from resume text using an LLM
 def extract_resume_fields(resume_text: str, model: str = MODEL) -> dict:
+    """Extract structured resume information with an LLM.
+
+    Args:
+        resume_text: Raw resume text to parse.
+        model: Model identifier used for the LLM request.
+
+    Returns:
+        A dictionary containing the extracted resume fields, with None values where the
+        information could not be found.
+    """
+    # Convert the schema definitions into a plain-language prompt for the model.
     field_desc = "\n".join(
         f"- {name}: {info['description']}" for name, info in RESUME_FIELD_DEFINITIONS.items()
     )
     prompt = RESUME_EXTRACTION_PROMPT.format(field_definitions=field_desc)
 
+    # Send the extraction prompt to the configured LLM and parse the JSON response.
     response = complete(
         [{"role": "system", "content": prompt},
          {"role": "user",   "content": resume_text}],

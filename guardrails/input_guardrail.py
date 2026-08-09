@@ -20,7 +20,14 @@ _INJECTION_REGEX = re.compile("|".join(INJECTION_PATTERNS), re.IGNORECASE)
 
 
 def detect_prompt_injection(message: str) -> bool:
-    # Returns True if the message matches a known injection pattern.
+    """Check whether a user message attempts prompt injection or instruction override.
+
+    Args:
+        message: User text to inspect.
+
+    Returns:
+        True when the message appears to contain prompt-injection patterns; otherwise False.
+    """
     return bool(_INJECTION_REGEX.search(message))
 
 
@@ -37,8 +44,14 @@ Message: {message}
 
 
 def is_off_topic(message: str) -> bool:
-    """Returns True if the message is classified as unrelated to the
-    chatbot's career-readiness domain."""
+    """Classify whether a user message is outside the supported career-readiness domain.
+
+    Args:
+        message: User text to classify.
+
+    Returns:
+        True when the message is judged off-topic; otherwise False.
+    """
     client = ollama.Client(host=OLLAMA_BASE_URL)
     prompt = TOPIC_CLASSIFIER_PROMPT.format(message=message)
     response = client.chat(
@@ -65,10 +78,17 @@ OFF_TOPIC_BLOCKED_MESSAGE = (
 
 
 def check_input(message: str) -> tuple[bool, str | None]:
-    """Runs both guardrail checks in order (injection first — cheaper and
-    catches the more security-sensitive case first). Returns (is_safe, blocked_reason).
-    If is_safe is False, the caller should return blocked_reason directly to
-    the user WITHOUT ever invoking the ReAct loop."""
+    """Run the input-safety checks in order and return a safe/blocked decision.
+
+    The prompt-injection check is applied first because it is cheaper and more security-sensitive.
+    If either check fails, the caller should block the request and avoid running the ReAct loop.
+
+    Args:
+        message: User text to validate.
+
+    Returns:
+        A tuple of (is_safe, blocked_reason), where blocked_reason is None when the input is allowed.
+    """
     if detect_prompt_injection(message):
         return False, INJECTION_BLOCKED_MESSAGE
     if is_off_topic(message):

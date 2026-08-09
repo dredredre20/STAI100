@@ -15,17 +15,29 @@ RESUME_VERIFICATION_PROMPT = (
 
 
 def _normalize_response(response: str) -> str:
+    """Normalize an LLM response to a consistent uppercase form."""
     return (response or "").strip().upper()
 
 
 def verify_resume_text(resume_text: str, model: str = MODEL) -> bool:
-    """Return True only if the uploaded text appears to be a resume/CV."""
+    """Check whether uploaded text appears to be a resume or CV content.
+
+    The function first uses a lightweight keyword heuristic to reject clearly non-resume content,
+    then asks the LLM to confirm the classification when the text looks plausible.
+
+    Args:
+        resume_text: Raw text extracted from an uploaded document.
+        model: Model identifier used for the verification prompt.
+
+    Returns:
+        True when the text appears to be a resume/CV; otherwise False.
+    """
     if not resume_text or len(resume_text.strip()) < 50:
         return False
-    
+
     lower_text = resume_text.lower()
 
-    # heuristic check for common resume keywords to avoid unnecessary LLM calls
+    # Use a cheap heuristic to skip unnecessary LLM calls for clearly unrelated content.
     keywords = [
         "experience",
         "skills",
@@ -40,6 +52,7 @@ def verify_resume_text(resume_text: str, model: str = MODEL) -> bool:
     if not any(keyword in lower_text for keyword in keywords):
         return False
 
+    # Ask the LLM to make the final yes/no decision on whether the content is a resume.
     response = complete(
         [
             {"role": "system", "content": RESUME_VERIFICATION_PROMPT},

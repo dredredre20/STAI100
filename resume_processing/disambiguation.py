@@ -4,7 +4,14 @@ from llm_utils import complete
 from config import MODEL
 
 def get_missing_fields(filled_fields: dict) -> list:
-    """Only target_role blocks completion — everything else is optional context."""
+    """Identify required fields that are still missing from a partially extracted profile.
+
+    Args:
+        filled_fields: Dictionary of extracted resume fields.
+
+    Returns:
+        A list of required field names that are still missing or unset.
+    """
     return [
         name for name, info in RESUME_FIELD_DEFINITIONS.items()
         if info.get("required", False) and filled_fields.get(name) is None
@@ -21,8 +28,16 @@ CLARIFICATION_PROMPT = (
     "Respond with ONLY the question."
 )
 
-# function to generate a clarification question for the user to specify their target role
 def generate_target_role_clarification(filled_fields: dict, model: str = MODEL) -> str:
+    """Generate a short clarification question for the target role when it is missing.
+
+    Args:
+        filled_fields: Dictionary containing the currently extracted resume fields.
+        model: Model identifier used for the LLM request.
+
+    Returns:
+        A natural-language clarification question asking the user to specify their target role.
+    """
     known = {k: v for k, v in filled_fields.items() if v is not None and k != "target_role"}
     prompt = CLARIFICATION_PROMPT.format(
         known_fields=json.dumps(known) if known else "nothing yet"
