@@ -38,16 +38,24 @@ Respond with ONLY valid JSON, no markdown fences, no extra text:
 ], "summary": "..."}}""",
 }
 
-
-# ---------------------------------------------------------------------------
-# Retrieval
-# ---------------------------------------------------------------------------
 def get_job_by_identifier(collection, company: str = None, title: str = None, job_id: str = None):
-    """Retrieve a specific job posting's document + metadata from Chroma
-    via exact ID or metadata filter (company/title)."""
+    """Retrieve a specific job posting from Chroma by exact ID or metadata filter.
+
+    Args:
+        collection: The Chroma collection containing stored job postings.
+        company: Optional company name used to filter matching postings.
+        title: Optional job title used to filter matching postings.
+        job_id: Optional exact identifier for a single posting.
+
+    Returns:
+        A dictionary with the posting ID, requirements text, and metadata when a match is found;
+        otherwise, None.
+    """
     if job_id:
+        # Fetch the exact posting by its Chroma ID.
         result = collection.get(ids=[job_id], include=["documents", "metadatas"])
     else:
+        # Build a metadata filter from the provided company/title values.
         conditions = []
         if company:
             conditions.append({"company": company})
@@ -58,7 +66,6 @@ def get_job_by_identifier(collection, company: str = None, title: str = None, jo
             return None
 
         where_filter = conditions[0] if len(conditions) == 1 else {"$and": conditions}
-
         result = collection.get(where=where_filter, include=["documents", "metadatas"])
 
     if not result["documents"]:
@@ -72,9 +79,20 @@ def get_job_by_identifier(collection, company: str = None, title: str = None, jo
 
 
 def find_job_semantic(collection, query_text: str, n_results: int = 1):
-    """Semantic fallback when no exact company/title is given.
-    Also returns a similarity score straight from this query, so we don't
-    need a second round-trip to compute it."""
+    """Find the closest matching job posting using semantic similarity.
+
+    This is used as a fallback when an exact company/title lookup does not produce a match.
+
+    Args:
+        collection: The Chroma collection containing stored job postings.
+        query_text: Natural-language text used to search for relevant postings.
+        n_results: Maximum number of matching postings to return.
+
+    Returns:
+        A dictionary with the best matching posting, its requirements text, metadata, and a
+        similarity score when results are available; otherwise, None.
+    """
+    # Prefix the query so the embedding matches the same retrieval style used elsewhere.
     prefixed_query = f"{BGE_QUERY_INSTRUCTION}{query_text}"
     results = collection.query(query_texts=[prefixed_query], n_results=n_results)
 
@@ -90,17 +108,20 @@ def find_job_semantic(collection, query_text: str, n_results: int = 1):
 
 
 def get_similarity_for_job(collection, resume_text: str, job_id: str, search_pool: int = 50) -> float:
-    """Computes resume-vs-specific-job similarity.
+    """Compute the similarity between a resume and a specific job posting.
 
-    Chroma's query() doesn't support filtering results down to a single known
-    id, so instead we query broadly (resume against the whole collection) and
-    pick out the distance for the job_id we care about from the results.
-    search_pool should be >= total number of stored postings to guarantee the
-    target job_id appears in results; bump it if your collection grows past 50.
+    Chroma's query API does not support filtering directly to a known ID, so this helper
+    queries broadly and extracts the score for the requested posting from the returned results.
 
-    Uses the same BGE_QUERY_INSTRUCTION prefix as job_fit_prediction.py's
-    predict_job_matches(), so scores/tiers agree between get_top_matches and
-    get_skill_gap for the same resume+job pair.
+    Args:
+        collection: The Chroma collection containing stored job postings.
+        resume_text: Resume text to compare against the posting embeddings.
+        job_id: The target posting ID to locate in the query results.
+        search_pool: Number of nearest neighbors to request. Increase this if the collection
+            grows beyond the current size.
+
+    Returns:
+        A similarity score in the range [0, 1] when the job is found; otherwise 0.0.
     """
     prefixed_resume = f"{BGE_QUERY_INSTRUCTION}{resume_text}"
     result = collection.query(query_texts=[prefixed_resume], n_results=search_pool)
@@ -112,8 +133,7 @@ def get_similarity_for_job(collection, resume_text: str, job_id: str, search_poo
         if rid == job_id:
             return round(1 - result["distances"][0][idx], 4)
 
-    # job_id wasn't within search_pool results — collection is likely larger
-    # than search_pool. Retry once against the full collection size.
+    # The requested posting was not within the initial search pool, so retry with a larger query.
     total_count = collection.count()
     if total_count > search_pool:
         wider = collection.query(query_texts=[prefixed_resume], n_results=total_count)
@@ -124,12 +144,22 @@ def get_similarity_for_job(collection, resume_text: str, job_id: str, search_poo
     return 0.0
 
 
-# ---------------------------------------------------------------------------
-# Generation (Ollama)
-# ---------------------------------------------------------------------------
 def analyze_skill_gap(resume_text: str, job_requirements_text: str, similarity_score: float) -> dict:
-    """Compare resume against a specific job's requirements using the local LLM,
-    with the response style/tier driven by the similarity score."""
+    """Compare a resume against a specific job using the local LLM.
+
+    The similarity score determines which response template is used so the LLM can produce
+    either a strong-match summary, a blocker-focused near-match analysis, or a roadmap for
+    long-term upskilling.
+
+    Args:
+        resume_text: The candidate resume text to analyze.
+        job_requirements_text: The target job posting requirements text.
+        similarity_score: Numeric similarity score used to choose the appropriate tier prompt.
+
+    Returns:
+        A dictionary containing the LLM-generated analysis payload.
+    """
+    # Select the prompt style based on the match tier.
     tier = get_tier(similarity_score)
     tier_instruction = TIER_PROMPTS[tier]
 
@@ -141,6 +171,7 @@ Job Requirements:
 
 {tier_instruction}"""
 
+    # Use the configured Ollama client to generate the structured response.
     client = ollama.Client(host=OLLAMA_BASE_URL)
     response = client.chat(
         model=MODEL,
@@ -157,9 +188,6 @@ Job Requirements:
     return result
 
 
-# ---------------------------------------------------------------------------
-# This is what react_agent.py's run_tool() calls
-# ---------------------------------------------------------------------------
 def get_skill_gap_analysis(
     collection,
     resume_text: str,
@@ -167,16 +195,32 @@ def get_skill_gap_analysis(
     title: str = None,
     fuzzy_query: str = None,
 ) -> dict:
-    """Resolves a job posting (exact lookup or semantic fallback), computes
-    similarity against the resume, then runs tiered skill gap analysis."""
+    """Resolve a job posting, compute its similarity to a resume, and generate a skill-gap analysis.
+
+    The function first tries an exact metadata lookup, then falls back to semantic search if
+    no direct match is found. Once a job is resolved, it computes the similarity score and
+    hands the resume/job text pair to the local LLM for structured analysis.
+
+    Args:
+        collection: The Chroma collection containing stored job postings.
+        resume_text: The candidate resume text to compare against the job.
+        company: Optional company name for exact lookup.
+        title: Optional job title for exact lookup.
+        fuzzy_query: Optional natural-language fallback query when exact lookup fails.
+
+    Returns:
+        A dictionary with the skill-gap analysis payload and associated job metadata.
+    """
     job = None
     similarity_score = None
 
+    # Try an exact lookup first when company or title information is available.
     if company or title:
         job = get_job_by_identifier(collection, company=company, title=title)
         if job:
             similarity_score = get_similarity_for_job(collection, resume_text, job["id"])
 
+    # Fall back to semantic retrieval if no exact match was found.
     if job is None:
         query = fuzzy_query or " ".join(filter(None, [title, company]))
         job = find_job_semantic(collection, query)
@@ -186,6 +230,7 @@ def get_skill_gap_analysis(
     if job is None:
         return {"error": "No matching job posting found."}
 
+    # Generate the analysis and attach the matched job metadata to the response.
     result = analyze_skill_gap(resume_text, job["requirements_text"], similarity_score)
     result["job_metadata"] = job["metadata"]
     return result
