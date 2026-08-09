@@ -1,5 +1,14 @@
+import html
 import json
+import os
+import re
 import ollama
+from datetime import datetime
+from reportlab.lib.pagesizes import letter
+from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
+from reportlab.platypus import SimpleDocTemplate, Paragraph, Spacer
+from reportlab.lib import colors
+
 from config import MODEL, OLLAMA_BASE_URL
 from memory.db_memory import (
     get_latest_resume_profile,
@@ -14,7 +23,6 @@ from ds_integration.job_fit_prediction import predict_job_matches, format_resume
 from ds_integration.job_search import get_all_postings, search_postings
 from ds_integration.skill_gap import get_skill_gap_analysis
 
-# Tool descriptions for the agent to use in its system prompt, each tool has an explanation of its purpose and when to use it.
 TOOL_DESCRIPTIONS = """
 Available Tools:
 - get_top_matches[] : Ranks all stored job postings against the user's resume
@@ -26,35 +34,34 @@ Available Tools:
 - get_skill_gap[company, title] : Retrieves a specific job posting (by company
   and/or title — at least one is required) and compares it against the user's
   resume. Returns matched skills and gaps, with the response style adapted to
-  fit tier (deal-breaker gaps for Near Match, a 6-12 month roadmap for
-  Long-Term Upskilling, etc). Use this when the user names a specific company
-  or role and asks what they're missing for it, or asks for a detailed
-  breakdown beyond a similarity score.
+  fit tier. Use this when the user names a specific company or role and asks what 
+  they're missing for it, or asks for a detailed breakdown beyond a similarity score.
 
 - search_posting[query] : Semantic search over stored job postings for a
   fuzzy/descriptive query (e.g. "AI engineering roles", "remote data roles").
   Returns matching postings with title/company/link and similarity. Use this
   when the user doesn't name an exact company/title but describes what
-  they're looking for, or wants to browse rather than get a specific fit
-  analysis.
+  they're looking for, or wants to browse rather than get a specific fit analysis.
 
 - update_skills[new_skills, new_certifications] : Adds new skills and/or
-  certifications to the user's saved resume profile (e.g. after they mention
-  completing a course, earning a certification, or learning a new skill).
-  Both parameters are optional lists of strings — pass only what's new, not
-  the full existing list. Use this when the user says something like "I just
-  got AWS certified" or "I learned Terraform" — NOT for correcting mistakes
-  in their profile (that would need a different tool) and not for one-off
-  skill questions (use get_user_profile or get_skill_gap for those).
+  certifications to the user's saved resume profile.
+  Use this when the user mentions earning a certification or learning a new skill.
 
 - get_user_profile[] : Returns this session's most recently saved resume
   profile — skills, certifications, education level, years of experience,
-  and target_role. Use this for general questions about the user's
-  background (e.g. "what skills do I have listed?", "what's my education?",
-  "what certifications did I upload?")
+  and target_role.
+
+- generate_cover_letter[company, title] : Generates a customized cover letter and PDF. 
+  CRITICAL: Use this ONLY when the user explicitly asks to draft, write, or generate 
+  a cover letter (e.g., "write a cover letter for X"). DO NOT trigger this for general 
+  questions, advice, or skill gap queries. Both `company` and `title` parameters are required.
+
+- generate_targeted_resume[company, title] : Generates a full, professionally formatted resume PDF. 
+  CRITICAL: Use this ONLY when the user explicitly asks to generate, build, or format 
+  a resume (e.g., "generate a tailored resume for X"). DO NOT trigger this during standard 
+  conversations or skill gap queries. Both `company` and `title` parameters are required.
 """
 
-# Prompt template for the system message that contains context and instructions for the agent.
 SYSTEM_PROMPT_TEMPLATE = """Role: You are a career-readiness advisor agent.
 You help users understand their skill gaps for a target role and track their progress.
 {tool_descriptions}
@@ -67,6 +74,10 @@ CONVERSATION HISTORY (rolling summary + recent turns from earlier in this sessio
 {conversation_history}
 ---
 
+RULES FOR TOOL CALLING:
+1. NEVER call `generate_cover_letter` or `generate_targeted_resume` unless the user explicitly requested document creation in their latest prompt.
+2. If the user asks general questions about job fit, skill gaps, missing skills, or career advice, use `get_skill_gap` or `get_top_matches` instead.
+
 You must respond with ONLY a valid JSON object. Do not wrap it in markdown code blocks.
 Do not include any explanatory text before or after the JSON.
 
@@ -75,37 +86,13 @@ Every response has this shape:
 
 Exactly one of "action" or "final_answer" must be non-null. The other must be null.
 
-Use the "thought" field to actually reason step by step before deciding, covering:
-1. What is the user asking for, specifically? Use CONVERSATION HISTORY above to
-   understand follow-ups like "what about the preferred ones?" or "has that improved?"
-2. What do I already know from User context, CONVERSATION HISTORY, or prior
-   Observations in this turn? Is it enough to answer, or is something missing?
-3. If something is missing, which single tool fills that gap, and what parameters
-   does it need? (Only call a tool if you genuinely need its output — don't call a
-   tool you already have the answer from, including from CONVERSATION HISTORY.)
-4. If I already have enough information, skip the tool: set "action" to null and
-   write the final answer instead.
-Keep "thought" as short as it can be while still covering the above — a few
-sentences is normally enough, don't pad it.
-
 Conventions:
-- After a tool Observation is added to the conversation, re-do this same reasoning:
-  decide if the observation is now enough to answer (go to final_answer) or if
-  another tool call is needed (only if truly necessary — avoid loops).
+- When calling `generate_cover_letter` or `generate_targeted_resume`, your `final_answer` in the following turn MUST output the exact text of the document AND notify the user that the PDF file has been generated and saved by stating exactly: "[PDF Generated]: Saved to <path>".
 - Be concise and conversational in final_answer — this is a chat interface, not a report.
 """
 
 
 def _get_resume_profile_dict(session_id: str) -> dict:
-    """Load the latest saved resume profile for a session in the shape expected by the embedding helpers.
-
-    Args:
-        session_id: Unique identifier for the current conversation.
-
-    Returns:
-        A dictionary containing a "fields" key with the resume attributes required by
-        format_resume_string(), or an empty dictionary when no profile is available.
-    """
     profile = get_latest_resume_profile(session_id)
     if not profile:
         return {}
@@ -121,21 +108,108 @@ def _get_resume_profile_dict(session_id: str) -> dict:
     }
 
 
-def run_tool(action: dict, session_id: str, resume_skills: list[str], target_role: str) -> str:
-    """Execute the requested tool and return its result as a JSON string.
-
-    Args:
-        action: Dictionary with "tool_name" and "parameters" keys describing the tool call.
-        session_id: Unique identifier for the current conversation.
-        resume_skills: List of skills from the saved resume profile.
-        target_role: Target role from the saved resume profile.
-
-    Returns:
-        A JSON-formatted string containing either the tool output or an error message.
+def generate_pdf_cover_letter(cover_letter_text: str, output_path: str) -> str:
     """
+    Compiles the provided cover letter plain text into a PDF document following standard typography margins.
+    """
+    os.makedirs(os.path.dirname(output_path), exist_ok=True)
+    doc = SimpleDocTemplate(
+        output_path,
+        pagesize=letter,
+        rightMargin=54,
+        leftMargin=54,
+        topMargin=54,
+        bottomMargin=54
+    )
+    styles = getSampleStyleSheet()
+    
+    body_style = ParagraphStyle(
+        'CoverLetterBody',
+        parent=styles['Normal'],
+        fontName='Helvetica',
+        fontSize=10.5,
+        leading=15,
+        textColor=colors.HexColor("#1A1A1A"),
+        spaceAfter=10
+    )
+    
+    story = []
+    lines = cover_letter_text.strip().split("\n")
+    for line in lines:
+        cleaned_line = line.strip()
+        if cleaned_line:
+            safe_line = html.escape(cleaned_line)
+            formatted_line = re.sub(r'\*\*(.*?)\*\*', r'<b>\1</b>', safe_line)
+            story.append(Paragraph(formatted_line, body_style))
+        else:
+            story.append(Spacer(1, 6))
+            
+    doc.build(story)
+    return output_path
 
+
+def generate_pdf_resume(resume_text: str, output_path: str) -> str:
+    """
+    Compiles the tailored resume text into a Harvard-formatted PDF document safely.
+    """
+    os.makedirs(os.path.dirname(output_path), exist_ok=True)
+    doc = SimpleDocTemplate(
+        output_path,
+        pagesize=letter,
+        rightMargin=36,
+        leftMargin=36,
+        topMargin=36,
+        bottomMargin=36
+    )
+    styles = getSampleStyleSheet()
+    
+    body_style = ParagraphStyle(
+        'HarvardBody',
+        parent=styles['Normal'],
+        fontName='Helvetica',
+        fontSize=10,
+        leading=13.5,
+        textColor=colors.HexColor("#1A1A1A"),
+        spaceAfter=3
+    )
+    
+    story = []
+    lines = resume_text.strip().split("\n")
+    for line in lines:
+        cleaned_line = line.strip()
+        if not cleaned_line:
+            story.append(Spacer(1, 4))
+            continue
+
+        safe_line = html.escape(cleaned_line)
+        formatted_line = re.sub(r'\*\*(.*?)\*\*', r'<b>\1</b>', safe_line)
+
+        try:
+            story.append(Paragraph(formatted_line, body_style))
+        except Exception:
+            story.append(Paragraph(safe_line, body_style))
+            
+    doc.build(story)
+    return output_path
+
+
+def run_tool(
+    action: dict,
+    session_id: str,
+    resume_skills: list[str],
+    target_role: str,
+    user_message: str = ""
+) -> str:
     tool_name = action.get("tool_name", "")
     params = action.get("parameters", {})
+
+    # Code-level guardrail against over-triggering document tools
+    if tool_name in ["generate_cover_letter", "generate_targeted_resume"]:
+        trigger_words = ["cover letter", "resume", "write", "generate", "draft", "create", "build", "make"]
+        if user_message and not any(word in user_message.lower() for word in trigger_words):
+            return json.dumps({
+                "error": f"Tool '{tool_name}' was blocked because the user did not explicitly request document creation. Answer their query conversationally instead."
+            })
 
     if tool_name == "get_user_profile":
         try:
@@ -218,24 +292,215 @@ def run_tool(action: dict, session_id: str, resume_skills: list[str], target_rol
         except Exception as e:
             return f"ERROR: search_posting failed: {e}"
 
+    elif tool_name == "generate_cover_letter":
+        try:
+            company = params.get("company")
+            title = params.get("title")
+            if not company or not title:
+                return json.dumps({"error": "generate_cover_letter requires both 'company' and 'title' parameters."})
+
+            profile = get_latest_resume_profile(session_id)
+            if not profile:
+                return json.dumps({"note": "No resume profile found for this session to build a cover letter."})
+
+            profile_dict = _get_resume_profile_dict(session_id)
+            resume_text = format_resume_string(profile_dict)
+
+            gap_analysis = {}
+            try:
+                gap_analysis = get_skill_gap_analysis(
+                    collection=job_collection,
+                    resume_text=resume_text,
+                    company=company,
+                    title=title,
+                )
+            except Exception:
+                pass
+
+            current_date = datetime.now().strftime("%B %d, %Y")
+
+            prompt_messages = [
+                {
+                    "role": "system",
+                    "content": (
+                        "You are a professional resume writer. Write a formal, tailored cover letter "
+                        "following standard professional formatting rules (Header, Salutation, Opening Hook, "
+                        "Body Paragraph with matched achievements, Closing Call-to-Action, and Sign-off). "
+                        "Output ONLY plain text without markdown code blocks."
+                    )
+                },
+                {
+                    "role": "user",
+                    "content": f"""
+Target Company: {company}
+Target Job Title: {title}
+
+Candidate Background:
+- Role/Category: {profile.get("current_role_category", "Professional")}
+- Experience: {profile.get("years_of_experience", "N/A")} years
+- Education: {profile.get("education_level", "N/A")}
+- Technical Skills: {profile.get("skills", "[]")}
+- Certifications: {profile.get("certifications", "[]")}
+
+Job Requirements & Gap Analysis:
+{json.dumps(gap_analysis, indent=2)}
+
+Format Requirements:
+1. HEADER:
+   [Applicant Name]
+   [City, State / Email / Phone Placeholder]
+   {current_date}
+
+   Hiring Manager or Hiring Team
+   {company}
+
+2. SALUTATION:
+   Dear Hiring Team at {company},
+
+3. OPENING PARAGRAPH:
+   State job title ({title}), express enthusiasm for {company}, and outline top qualifications.
+
+4. BODY PARAGRAPH(S):
+   Detail relevant technical experience matching {company}'s requirements.
+
+5. CLOSING PARAGRAPH:
+   Reiterate enthusiasm and request an interview.
+
+6. SIGN-OFF:
+   Sincerely,
+   [Applicant Name]
+"""
+                }
+            ]
+
+            cover_letter_text = call_llm(prompt_messages)
+
+            clean_company = company.strip()
+            pdf_filename = f"Cover letter - {clean_company}.pdf"
+            pdf_dir = os.path.join(os.getcwd(), "output", "cover_letters")
+            pdf_path = os.path.join(pdf_dir, pdf_filename)
+            
+            generate_pdf_cover_letter(cover_letter_text, pdf_path)
+
+            return json.dumps({
+                "company": company,
+                "title": title,
+                "cover_letter": cover_letter_text,
+                "pdf_path": pdf_path
+            })
+        except Exception as e:
+            return f"ERROR: generate_cover_letter failed: {e}"
+
+    elif tool_name == "generate_targeted_resume":
+        try:
+            company = params.get("company")
+            title = params.get("title")
+            if not company or not title:
+                return json.dumps({"error": "generate_targeted_resume requires both 'company' and 'title' parameters."})
+
+            profile = get_latest_resume_profile(session_id)
+            if not profile:
+                return json.dumps({"note": "No resume profile found for this session."})
+
+            profile_dict = _get_resume_profile_dict(session_id)
+            original_resume_text = format_resume_string(profile_dict)
+
+            gap_analysis = {}
+            try:
+                gap_analysis = get_skill_gap_analysis(
+                    collection=job_collection,
+                    resume_text=original_resume_text,
+                    company=company,
+                    title=title,
+                )
+            except Exception:
+                pass
+
+            prompt_messages = [
+                {
+                    "role": "system",
+                    "content": (
+                        "You are an expert executive resume writer. Generate a professional resume adhering strictly "
+                        "to the official Harvard Resume Format guidelines. Tailor the content specifically for the target job "
+                        "and company by combining original resume history with all recently updated skills."
+                    )
+                },
+                {
+                    "role": "user",
+                    "content": f"""
+Target Company: {company}
+Target Job Title: {title}
+
+--- CANDIDATE DATA ---
+Original Resume Content:
+{original_resume_text}
+
+Latest Profile Data (Includes skills added/updated during chat):
+- Education Level: {profile.get("education_level", "N/A")}
+- Years of Experience: {profile.get("years_of_experience", "N/A")}
+- All Current & Updated Skills: {json.dumps(profile.get("skills", []))}
+- Certifications: {json.dumps(profile.get("certifications", []))}
+
+Job Gap Analysis:
+{json.dumps(gap_analysis, indent=2)}
+
+--- HARVARD RESUME FORMATTING & CONTENT RULES ---
+Structure the resume into the following sections:
+
+**FirstName LastName**
+Address • City, State Zip • email@domain.com • Phone Number
+
+**EDUCATION**
+Institution Name | City, State or Country
+Degree, Major / Concentration | Graduation Date
+- Relevant Coursework or Academic Honors (if applicable)
+
+**EXPERIENCE**
+Organization Name | City, State or Country
+Position Title | Month Year – Month Year
+- Action-oriented bullet points outlining accomplishments, skills, and resulting outcomes.
+
+**LEADERSHIP & ACTIVITIES**
+Organization Name | City, State
+Role | Month Year – Month Year
+- Action-oriented bullet points highlighting leadership and initiative.
+
+**SKILLS & INTERESTS**
+- Technical: List software, frameworks, programming languages, and tools (must include all updated skills).
+- Language: List foreign languages and level of fluency (if applicable).
+- Interests: List activities or topics of interest that spark interview conversation.
+
+MANDATORY BULLET RULES:
+- Begin EVERY bullet line in Experience and Leadership with a strong action verb.
+- Quantify accomplishments where possible (e.g., percentages, metrics, numbers).
+- DO NOT use personal pronouns (I, me, my, we). Each line MUST be a phrase rather than a full sentence.
+- Weave the candidate's updated skills into the Experience bullet points where relevant.
+"""
+                }
+            ]
+
+            targeted_resume_text = call_llm(prompt_messages)
+
+            clean_company = company.strip()
+            pdf_filename = f"Targeted Resume - {clean_company}.pdf"
+            pdf_dir = os.path.join(os.getcwd(), "output", "resumes")
+            pdf_path = os.path.join(pdf_dir, pdf_filename)
+            
+            generate_pdf_resume(targeted_resume_text, pdf_path)
+
+            return json.dumps({
+                "company": company,
+                "title": title,
+                "targeted_resume": targeted_resume_text,
+                "pdf_path": pdf_path
+            })
+        except Exception as e:
+            return f"ERROR: generate_targeted_resume failed: {e}"
     else:
         return f"ERROR: Unknown tool '{tool_name}'"
 
 
-
 def format_final_answer(answer: str) -> str:
-    """Convert a model-produced JSON payload into a readable text response.
-
-    This acts as a safety net for cases where the LLM returns JSON instead of prose for its
-    final answer. The function extracts the most relevant fields and formats them into a compact
-    natural-language summary.
-
-    Args:
-        answer: Raw final-answer text returned by the model.
-
-    Returns:
-        A human-readable string suitable for display to the user.
-    """
     try:
         data = json.loads(answer)
     except (json.JSONDecodeError, TypeError):
@@ -245,35 +510,24 @@ def format_final_answer(answer: str) -> str:
         return answer
 
     parts = []
-    if "tier" in data:
-        parts.append(f"Tier: {data['tier']}.")
-    if "similarity_score" in data:
-        parts.append(f"Similarity score: {data['similarity_score']}.")
-    if data.get("matched_skills"):
-        parts.append(f"Matched skills: {', '.join(data['matched_skills'])}.")
-    if data.get("deal_breaker_gaps"):
-        parts.append(f"Deal-breaker gaps: {', '.join(data['deal_breaker_gaps'])}.")
-    if data.get("core_gaps"):
-        parts.append(f"Core skills to develop: {', '.join(data['core_gaps'])}.")
-    if data.get("roadmap"):
-        milestones = [
-            f"{m.get('milestone', '')} ({m.get('estimated_months', '?')} mo)"
-            for m in data["roadmap"]
-        ]
-        parts.append("Roadmap: " + "; ".join(milestones) + ".")
+    if data.get("cover_letter"):
+        parts.append(data["cover_letter"])
+        if data.get("pdf_path"):
+            parts.append(f"\n\n[PDF Generated]: Saved to {data['pdf_path']}")
+            
+    if data.get("targeted_resume"):
+        parts.append(data["targeted_resume"])
+        if data.get("pdf_path"):
+            parts.append(f"\n\n[PDF Generated]: Saved to {data['pdf_path']}")
+            
     if data.get("top_matches"):
-        titles = [
-            f"{m.get('title')} at {m.get('company')} ({m.get('tier')})"
-            for m in data["top_matches"]
-        ]
+        titles = [f"{m.get('title')} at {m.get('company')} ({m.get('tier')})" for m in data["top_matches"]]
         parts.append("Top matches: " + ", ".join(titles) + ".")
     if data.get("results"):
         titles = [f"{r.get('title')} at {r.get('company')}" for r in data["results"]]
         parts.append("Found: " + ", ".join(titles) + ".")
     if data.get("summary"):
         parts.append(data["summary"])
-    if data.get("recommendation"):
-        parts.append(data["recommendation"])
     return " ".join(parts) if parts else answer
 
 
@@ -286,26 +540,6 @@ def run_agent(
     verbose: bool = True,
 ) -> str:
 
-    """Run the agent loop by alternating between LLM reasoning and tool execution.
-
-    The function builds a system prompt with the available tool descriptions and session context,
-    then repeatedly asks the model for a thought/action pair. If a tool is required, it executes
-    the tool and feeds the observation back into the conversation. Once the model produces a
-    final answer, the result is formatted and persisted to session memory.
-
-    Args:
-        user_message: The latest user message to respond to.
-        session_id: Unique identifier for the current conversation.
-        resume_skills: The list of skills from the saved resume profile.
-        target_role: The target role from the saved resume profile.
-        max_turns: Maximum number of reasoning turns before stopping.
-        verbose: Whether to print progress information during execution.
-
-    Returns:
-        The final answer string returned to the user, or an error message if the loop fails.
-    """
-
-    # Retrieve & format memory
     session_history, conversation_history_text = get_formatted_session_history(session_id)
 
     system_prompt = SYSTEM_PROMPT_TEMPLATE.format(
@@ -342,7 +576,13 @@ def run_agent(
         if action:
             if verbose:
                 print(f"Action: {json.dumps(action)}")
-            result_str = run_tool(action, session_id, resume_skills, target_role)
+            result_str = run_tool(
+                action=action,
+                session_id=session_id,
+                resume_skills=resume_skills,
+                target_role=target_role,
+                user_message=user_message
+            )
             if verbose:
                 print(f"Result: {result_str[:300]}")
             messages.append({"role": "user", "content": f"Observation: {result_str}"})
@@ -353,38 +593,17 @@ def run_agent(
     if final_answer is None:
         final_answer = "I wasn't able to reach an answer within the allowed number of steps."
 
-    # Persist turn back to memory
     save_session_turn(session_id, session_history, user_message, final_answer)
 
     return final_answer
 
 
 def call_llm(messages: list) -> str:
-    """Send the current conversation to the configured LLM and return the raw response.
-
-    Args:
-        messages: Conversation history represented as a list of role/content dictionaries.
-
-    Returns:
-        The model's text response as a string.
-    """
-
     client = ollama.Client(host=OLLAMA_BASE_URL)
-    response = client.chat(model=MODEL, messages=messages, format="json")
+    response = client.chat(model=MODEL, messages=messages, format="json" if len(messages) > 2 else None)
     return response['message']['content'].strip()
 
 
 def parse_json(text: str) -> dict:
-    """Parse a model response that is expected to contain JSON.
-
-    The function strips optional markdown code fences and returns the parsed dictionary.
-
-    Args:
-        text: Raw text from the LLM response.
-
-    Returns:
-        A dictionary parsed from the JSON payload.
-    """
-
     text = text.strip().removeprefix("```json").removeprefix("```").removesuffix("```").strip()
     return json.loads(text)
