@@ -1,7 +1,10 @@
 import json
 import ollama
 from config import MODEL, OLLAMA_BASE_URL
-from memory.db_memory import get_latest_resume_profile
+from memory.db_memory import (
+    get_latest_resume_profile,
+    update_skills
+)
 from memory.conversation_memory import (
     get_formatted_session_history,
     save_session_turn
@@ -34,6 +37,15 @@ Available Tools:
   when the user doesn't name an exact company/title but describes what
   they're looking for, or wants to browse rather than get a specific fit
   analysis.
+
+- update_skills[new_skills, new_certifications] : Adds new skills and/or
+  certifications to the user's saved resume profile (e.g. after they mention
+  completing a course, earning a certification, or learning a new skill).
+  Both parameters are optional lists of strings — pass only what's new, not
+  the full existing list. Use this when the user says something like "I just
+  got AWS certified" or "I learned Terraform" — NOT for correcting mistakes
+  in their profile (that would need a different tool) and not for one-off
+  skill questions (use get_user_profile or get_skill_gap for those).
 
 - get_user_profile[] : Returns this session's most recently saved resume
   profile — skills, certifications, education level, years of experience,
@@ -136,6 +148,22 @@ def run_tool(action: dict, session_id: str, resume_skills: list[str], target_rol
         except Exception as e:
             return f"ERROR: get_user_profile failed: {e}"
 
+    elif tool_name == "update_skills":
+        try:
+            new_skills = params.get("new_skills", [])
+            new_certifications = params.get("new_certifications", [])
+            if not new_skills and not new_certifications:
+                return json.dumps({"error": "update_skills requires at least one new skill or certification."})
+
+            result = update_skills(
+                session_id=session_id,
+                new_skills=new_skills,
+                new_certifications=new_certifications,
+            )
+            return json.dumps(result)
+        except Exception as e:
+            return f"ERROR: update_skills failed: {e}"
+
     elif tool_name == "get_top_matches":
         try:
             profile_dict = _get_resume_profile_dict(session_id)
@@ -148,7 +176,7 @@ def run_tool(action: dict, session_id: str, resume_skills: list[str], target_rol
                 return json.dumps({"note": "No job postings are currently stored."})
 
             results_df = predict_job_matches(resume_text, all_postings)
-            top_matches = results_df.head(5).to_dict(orient="records")
+            top_matches = results_df.head(5)[["title", "company", "link", "tier"]].to_dict(orient="records")
             return json.dumps({"top_matches": top_matches})
         except Exception as e:
             return f"ERROR: get_top_matches failed: {e}"

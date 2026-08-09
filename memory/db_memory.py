@@ -41,33 +41,72 @@ def save_resume_profile(session_id: str, profile: dict) -> int:
     return new_id
 
 
-def save_diff_result(session_id: str, resume_profile_id: int, target_role: str, diff_result) -> int:
-    """Save a GapDiffResult (from gap_diff.diff_engine.run_gap_diff) tied to
-    the resume_profile it was computed from. Stores just the skill NAMES
-    (not full frequency/score detail) since that's what's needed for
-    progress comparison across sessions — the full requirement-side detail
-    can always be recomputed from corpus_build if needed."""
+def update_skills(
+    session_id: str,
+    new_skills: list[str] | None = None,
+    new_certifications: list[str] | None = None,
+) -> dict:
+    """Appends new skills/certifications to the session's latest resume
+    profile and saves it as a NEW profile row (not an in-place update),
+    so profile history over time stays intact — matches the existing
+    pattern of resume_profiles being append-only, same as diff_results.
+    Returns the updated profile dict, or an error note if no profile exists
+    yet to update."""
     conn = get_connection()
+    row = conn.execute(
+        """SELECT * FROM resume_profiles
+           WHERE session_id = ?
+           ORDER BY created_at DESC LIMIT 1""",
+        (session_id,),
+    ).fetchone()
+
+    if not row:
+        conn.close()
+        return {"error": "No existing resume profile found for this session to update."}
+
+    current = dict(row)
+    current_skills = json.loads(current.get("skills") or "[]")
+    current_certs = json.loads(current.get("certifications") or "[]")
+
+    # Merge, de-duplicate (case-insensitive), preserve original casing of existing entries
+    def merge_unique(existing: list[str], additions: list[str]) -> list[str]:
+        existing_lower = {s.lower() for s in existing}
+        merged = list(existing)
+        for item in additions or []:
+            if item.lower() not in existing_lower:
+                merged.append(item)
+                existing_lower.add(item.lower())
+        return merged
+
+    updated_skills = merge_unique(current_skills, new_skills or [])
+    updated_certs = merge_unique(current_certs, new_certifications or [])
+
     cursor = conn.execute(
-        """INSERT INTO diff_results
-           (session_id, resume_profile_id, target_role, readiness_score,
-            matched_required, missing_required, matched_preferred, missing_preferred)
-           VALUES (?, ?, ?, ?, ?, ?, ?, ?)""",
+        """INSERT INTO resume_profiles
+           (session_id, target_role, current_role_category, years_of_experience,
+            skills, certifications, education_level)
+           VALUES (?, ?, ?, ?, ?, ?, ?)""",
         (
             session_id,
-            resume_profile_id,
-            target_role,
-            diff_result.readiness_score,
-            json.dumps([m.requirement_skill for m in diff_result.matched_required]),
-            json.dumps([m.skill for m in diff_result.missing_required]),
-            json.dumps([m.requirement_skill for m in diff_result.matched_preferred]),
-            json.dumps([m.skill for m in diff_result.missing_preferred]),
+            current.get("target_role"),
+            current.get("current_role_category"),
+            current.get("years_of_experience"),
+            json.dumps(updated_skills),
+            json.dumps(updated_certs),
+            current.get("education_level"),
         ),
     )
     conn.commit()
     new_id = cursor.lastrowid
     conn.close()
-    return new_id
+
+    return {
+        "profile_id": new_id,
+        "skills": updated_skills,
+        "certifications": updated_certs,
+        "added_skills": new_skills or [],
+        "added_certifications": new_certifications or [],
+    }
 
 
 def get_latest_resume_profile(session_id: str) -> dict | None:

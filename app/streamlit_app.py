@@ -244,7 +244,7 @@ if st.session_state["profile_context"] is not None:
             st.markdown(msg["content"])
 
     # input box for the advisor chat - suggested prompts that a user can ask the bot
-    advisor_input = st.chat_input("e.g. 'Which job postings am I most qualified for?', 'What skills to i need to improve on to apply for this role at this company?', 'Can you help process my files for this role?' ")
+    advisor_input = st.chat_input("e.g. 'Which job postings am I most qualified for?', 'What skills do i need to improve on to apply for this role at this company?', 'Can you help process my files for this role?' ")
     if advisor_input:
         st.session_state["advisor_messages"].append({"role": "user", "content": advisor_input})
         with st.chat_message("user"):

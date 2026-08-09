@@ -154,7 +154,6 @@ Job Requirements:
     except json.JSONDecodeError:
         result = {"tier": tier, "summary": "Could not parse skill gap analysis.", "raw_response": raw}
 
-    result["similarity_score"] = similarity_score
     return result
 
 

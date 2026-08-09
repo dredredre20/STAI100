@@ -1,5 +1,7 @@
 import json
 import tempfile
+import time
+import traceback
 from pathlib import Path
 from typing import Any, AsyncGenerator
 
@@ -15,11 +17,10 @@ from react.react_agent import run_agent
 from guardrails.input_guardrail import check_input
 from memory.db_setup import init_db
 
-#import time
-#import traceback
+from config import MODEL, MLFLOW_ENABLED
 
-#from llmops.llmops_logger import log_request
-#from config import MODEL
+if MLFLOW_ENABLED:
+    from llmops.llmops_logger import log_request
 
 
 app = FastAPI(title="STAI100 Resume Intake API")
@@ -85,7 +86,8 @@ def process_resume(
     Non-streaming endpoint — kept for simple/synchronous callers (e.g.
     scripts, testing) that just want the final result in one response.
     """
-    #start_ts = time.perf_counter()
+
+    start_ts = time.perf_counter()
 
     try:
         with tempfile.NamedTemporaryFile(suffix=Path(file.filename or "resume.pdf").suffix or ".pdf", delete=False) as tmp:
@@ -97,29 +99,30 @@ def process_resume(
         if result.get("is_complete"):
             result["session_id"] = persist_completed_profile(result)
 
-
-        #latency_ms = (time.perf_counter() - start_ts) * 1000
-        #log_request(
-        #    model=MODEL,
-        #    prompt=f"[resume upload: {file.filename}, target_role={target_role}]",
-        #    completion=json.dumps(result.get("validated_profile") or result.get("clarification_question") or ""),
-        #    latency_ms=latency_ms,
-        #    guardrail_fired=False,
-        #    extra={"interface": "api", "endpoint": "/process"},
-        #)
+        if MLFLOW_ENABLED:
+            latency_ms = (time.perf_counter() - start_ts) * 1000
+            log_request(
+                model=MODEL,
+                prompt=f"[resume upload: {file.filename}, target_role={target_role}]",
+                completion=json.dumps(result.get("validated_profile") or result.get("clarification_question") or ""),
+                latency_ms=latency_ms,
+                guardrail_fired=False,
+                extra={"interface": "api", "endpoint": "/process"},
+            )
 
         return result
     except Exception as exc:  # pragma: no cover - defensive API handling
 
-        #latency_ms = (time.perf_counter() - start_ts) * 1000
-        #log_request(
-        #    model=MODEL,
-        #    prompt=f"[resume upload: {file.filename}]",
-        #    completion=f"ERROR: {exc}",
-        #    latency_ms=latency_ms,
-        #    guardrail_fired=False,
-        #    extra={"interface": "api", "endpoint": "/process", "error": True},
-        #)
+        if MLFLOW_ENABLED:
+            latency_ms = (time.perf_counter() - start_ts) * 1000
+            log_request(
+                model=MODEL,
+                prompt=f"[resume upload: {file.filename}]",
+                completion=f"ERROR: {exc}",
+                latency_ms=latency_ms,
+                guardrail_fired=False,
+                extra={"interface": "api", "endpoint": "/process", "error": True},
+            )
 
         raise HTTPException(status_code=500, detail=str(exc)) from exc
 
@@ -134,7 +137,7 @@ async def _sse_stage_generator(temp_path: Path, target_role: str | None) -> Asyn
     full structured result. Streams stage progress, not tokens, since this
     pipeline produces structured data rather than prose until the very end.
     """
-    #start_ts = time.perf_counter()
+    start_ts = time.perf_counter()
 
     stages = [
         "Reading resume...",
@@ -157,28 +160,30 @@ async def _sse_stage_generator(temp_path: Path, target_role: str | None) -> Asyn
         if result.get("is_complete"):
             result["session_id"] = persist_completed_profile(result)
 
-       # latency_ms = (time.perf_counter() - start_ts) * 1000
-        #log_request(
-        #    model=MODEL,
-        #    prompt=f"[resume upload (stream), target_role={target_role}]",
-        #    completion=json.dumps(result.get("validated_profile") or result.get("clarification_question") or ""),
-        #    latency_ms=latency_ms,
-        #    guardrail_fired=False,
-        #    extra={"interface": "api", "endpoint": "/process/stream"},
-        #)
+        if MLFLOW_ENABLED:
+            latency_ms = (time.perf_counter() - start_ts) * 1000
+            log_request(
+                model=MODEL,
+                prompt=f"[resume upload (stream), target_role={target_role}]",
+                completion=json.dumps(result.get("validated_profile") or result.get("clarification_question") or ""),
+                latency_ms=latency_ms,
+                guardrail_fired=False,
+                extra={"interface": "api", "endpoint": "/process/stream"},
+            )
 
         yield f"data: {json.dumps({'type': 'result', 'result': result})}\n\n"
     except Exception as e:
 
-       # latency_ms = (time.perf_counter() - start_ts) * 1000
-        #log_request(
-        #    model=MODEL,
-        #    prompt=f"[resume upload (stream), target_role={target_role}]",
-        #    completion=f"ERROR: {e}",
-        #    latency_ms=latency_ms,
-        #    guardrail_fired=False,
-        #    extra={"interface": "api", "endpoint": "/process/stream", "error": True},
-        #)
+        if MLFLOW_ENABLED:
+            latency_ms = (time.perf_counter() - start_ts) * 1000
+            log_request(
+                model=MODEL,
+                prompt=f"[resume upload (stream), target_role={target_role}]",
+                completion=f"ERROR: {e}",
+                latency_ms=latency_ms,
+                guardrail_fired=False,
+                extra={"interface": "api", "endpoint": "/process/stream", "error": True},
+            )
 
         yield f"data: {json.dumps({'type': 'error', 'error': str(e)})}\n\n"
     finally:
@@ -227,20 +232,21 @@ def chat(body: ChatRequest) -> dict:
     If an error occurs, it raises an HTTPException with a 500 status code.
     """
 
-    #start_ts = time.perf_counter()
+    start_ts = time.perf_counter()
 
     is_safe, blocked_message = check_input(body.message) # input guardrail
 
     if not is_safe: # if message is blocked by guardrail, return the blocked message and log the request
-       # latency_ms = (time.perf_counter() - start_ts) * 1000
-        #log_request(
-        #    model=MODEL,
-        #    prompt=body.message,
-        #    completion=blocked_message,
-        #    latency_ms=latency_ms,
-        #    guardrail_fired=True,
-        #    extra={"interface": "api", "endpoint": "/chat", "session_id": body.session_id},
-        #)
+        if MLFLOW_ENABLED:
+            latency_ms = (time.perf_counter() - start_ts) * 1000
+            log_request(
+                model=MODEL,
+                prompt=body.message,
+                completion=blocked_message,
+                latency_ms=latency_ms,
+                guardrail_fired=True,
+                extra={"interface": "api", "endpoint": "/chat", "session_id": body.session_id},
+            )
         return {"answer": blocked_message}
 
     try:
@@ -251,26 +257,31 @@ def chat(body: ChatRequest) -> dict:
             target_role=body.target_role,
             verbose=False,
         )
-       # latency_ms = (time.perf_counter() - start_ts) * 1000
-        #log_request(
-        #    model=MODEL,
-        #    prompt=body.message,
-        #    completion=answer,
-        #    latency_ms=latency_ms,
-        #    guardrail_fired=False,
-        #    extra={"interface": "api", "endpoint": "/chat", "session_id": body.session_id},
-        #)
+
+        if MLFLOW_ENABLED:
+            latency_ms = (time.perf_counter() - start_ts) * 1000
+            log_request(
+                model=MODEL,
+                prompt=body.message,
+                completion=answer,
+                latency_ms=latency_ms,
+                guardrail_fired=False,
+                extra={"interface": "api", "endpoint": "/chat", "session_id": body.session_id},
+            )
+
         return {"answer": answer}
     except Exception as exc:
-       # latency_ms = (time.perf_counter() - start_ts) * 1000
-        #log_request(
-        #    model=MODEL,
-        #    prompt=body.message,
-        #    completion=f"ERROR: {exc}",
-        #    latency_ms=latency_ms,
-        #    guardrail_fired=False,
-        #    extra={"interface": "api", "endpoint": "/chat", "session_id": body.session_id, "error": True},
-        #)
+
+        if MLFLOW_ENABLED:
+            latency_ms = (time.perf_counter() - start_ts) * 1000
+            log_request(
+                model=MODEL,
+                prompt=body.message,
+                completion=f"ERROR: {exc}",
+                latency_ms=latency_ms,
+                guardrail_fired=False,
+                extra={"interface": "api", "endpoint": "/chat", "session_id": body.session_id, "error": True},
+            )
         raise HTTPException(status_code=500, detail=str(exc)) from exc
 
 @app.get("/health")
