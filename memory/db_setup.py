@@ -22,20 +22,6 @@ CREATE TABLE IF NOT EXISTS resume_profiles (
     FOREIGN KEY (session_id) REFERENCES sessions(session_id)
 );
 
-CREATE TABLE IF NOT EXISTS diff_results (
-    id INTEGER PRIMARY KEY AUTOINCREMENT,
-    session_id TEXT NOT NULL,
-    resume_profile_id INTEGER NOT NULL,
-    target_role TEXT NOT NULL,
-    readiness_score REAL NOT NULL,
-    matched_required TEXT,     -- JSON-encoded list of skill names
-    missing_required TEXT,     -- JSON-encoded list of skill names
-    matched_preferred TEXT,    -- JSON-encoded list of skill names
-    missing_preferred TEXT,    -- JSON-encoded list of skill names
-    created_at TEXT NOT NULL DEFAULT (datetime('now')),
-    FOREIGN KEY (session_id) REFERENCES sessions(session_id),
-    FOREIGN KEY (resume_profile_id) REFERENCES resume_profiles(id)
-);
 """
 
 

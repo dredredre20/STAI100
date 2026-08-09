@@ -25,10 +25,9 @@ def detect_prompt_injection(message: str) -> bool:
 
 
 # ── Off-topic detection ──────────────────────────────────────────────────
-TOPIC_CLASSIFIER_PROMPT = """You are a strict topic classifier for a career-readiness advisor chatbot.
+TOPIC_CLASSIFIER_PROMPT = """You are a topic classifier for a career-readiness advisor chatbot.
 The chatbot ONLY discusses: skill gaps, job readiness, resume content, career progress,
-target roles (data scientist or cloud engineering), certifications, and course/learning
-recommendations related to those roles.
+target roles, certifications, and things related to the user profile.
 
 Classify the following user message as either ON_TOPIC or OFF_TOPIC.
 Respond with ONLY one word: ON_TOPIC or OFF_TOPIC.

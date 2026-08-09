@@ -9,8 +9,7 @@ from fastapi.responses import StreamingResponse
 from pydantic import BaseModel
 
 from resume_processing.pipeline import load_resume_text, run_resume_intake_pipeline
-from memory.db_memory import create_session, save_resume_profile, save_diff_result
-from skill_gap.diff_engine import run_gap_diff
+from memory.db_memory import create_session, save_resume_profile
 from react.react_agent import run_agent
 
 from guardrails.input_guardrail import check_input
@@ -20,7 +19,6 @@ import time
 import traceback
 
 from llmops.llmops_logger import log_request
-
 from config import MODEL
 
 
@@ -37,7 +35,7 @@ app.add_middleware(
 def startup_event():
     init_db()
 
-# function to process uploaded resume and return structured result  
+# Function to process uploaded resume and return structured result  
 def process_uploaded_resume(uploaded_file: Path | str, target_role: str | None = None) -> dict[str, Any]:
     temp_path = Path(uploaded_file)
     if not temp_path.exists():
@@ -50,24 +48,19 @@ def process_uploaded_resume(uploaded_file: Path | str, target_role: str | None =
         target_role_override=target_role,
     )
 
-
-import traceback
-
-# function to persist completed profile to database and return session ID
+# Function to persist completed profile to database and return session ID
 def persist_completed_profile(result: dict[str, Any]) -> str:
     profile = result["validated_profile"]
     try:
         session_id = create_session()
-        resume_profile_id = save_resume_profile(session_id, profile)
-        diff_result = run_gap_diff(profile.get("skills", []), profile.get("target_role"))
-        save_diff_result(session_id, resume_profile_id, profile.get("target_role"), diff_result)
+        save_resume_profile(session_id, profile)
         return session_id
     except Exception:
         traceback.print_exc()   # TEMP DEBUG — shows full traceback in uvicorn terminal
         raise
 
 
-# function to process uploaded resume and return structured result (non-streaming)
+# Function to process uploaded resume and return structured result (non-streaming)
 @app.post("/process")
 def process_resume(
     file: UploadFile = File(...),
@@ -114,7 +107,7 @@ def process_resume(
         raise HTTPException(status_code=500, detail=str(exc)) from exc
 
 
-# function to generate SSE events for each pipeline stage and final result
+# Function to generate SSE events for each pipeline stage and final result
 async def _sse_stage_generator(temp_path: Path, target_role: str | None) -> AsyncGenerator[str, None]:
     """Yields SSE events for each pipeline stage, then a final event with the
     full structured result. Streams stage progress, not tokens, since this
@@ -171,7 +164,7 @@ async def _sse_stage_generator(temp_path: Path, target_role: str | None) -> Asyn
         yield "data: [DONE]\n\n"
 
 
-# function to process uploaded resume and return structured result (streaming via SSE)
+# Function to process uploaded resume and return structured result (streaming via SSE)
 @app.post("/process/stream")
 async def process_resume_stream(
     file: UploadFile = File(...),
@@ -196,7 +189,7 @@ class ChatRequest(BaseModel):
     target_role: str
 
 
-# function to handle chat messages from the user and return bot responses
+# Function to handle chat messages from the user and return bot responses
 @app.post("/chat")
 def chat(body: ChatRequest) -> dict:
 

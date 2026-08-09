@@ -30,7 +30,7 @@ RESUME_FIELD_DEFINITIONS = {
         "required": False,
     },
     "education_level": {
-        "description": "Highest level of education completed",
+        "description": "Full degree title including major/field of study verbatim from the resume ",
         "required": False,
     },
 }

@@ -1,27 +1,45 @@
 import json
 import ollama
 from config import MODEL, OLLAMA_BASE_URL
-from skill_gap.diff_engine import run_gap_diff
 from memory.db_memory import get_latest_resume_profile
 from memory.conversation_memory import (
     get_formatted_session_history,
     save_session_turn
 )
+from ds_integration.ingest_job_postings import job_collection
+from ds_integration.job_fit_prediction import predict_job_matches, format_resume_string
+from ds_integration.job_search import get_all_postings, search_postings
+from ds_integration.skill_gap import get_skill_gap_analysis
 
 
 TOOL_DESCRIPTIONS = """
 Available Tools:
-- get_skill_gap[resume_skills, target_role] : Compares the user's skills against
-  aggregated job posting requirements for their target role. Returns matched/missing
-  required and preferred skills, plus a readiness_score (0-100). Use this when the
-  user asks what skills they need, what they're missing, or how ready they are.
+- get_top_matches[] : Ranks all stored job postings against the user's resume
+  using semantic similarity, returning the top matches with similarity scores
+  and readiness tiers (Ready to Apply / Near Match / Long-Term Upskilling).
+  Use this when the user asks what jobs they're qualified for, what they
+  should apply to, or wants an overview of their best-fit postings.
+
+- get_skill_gap[company, title] : Retrieves a specific job posting (by company
+  and/or title — at least one is required) and compares it against the user's
+  resume. Returns matched skills and gaps, with the response style adapted to
+  fit tier (deal-breaker gaps for Near Match, a 6-12 month roadmap for
+  Long-Term Upskilling, etc). Use this when the user names a specific company
+  or role and asks what they're missing for it, or asks for a detailed
+  breakdown beyond a similarity score.
+
+- search_posting[query] : Semantic search over stored job postings for a
+  fuzzy/descriptive query (e.g. "AI engineering roles", "remote data roles").
+  Returns matching postings with title/company/link and similarity. Use this
+  when the user doesn't name an exact company/title but describes what
+  they're looking for, or wants to browse rather than get a specific fit
+  analysis.
+
 - get_user_profile[] : Returns this session's most recently saved resume
   profile — skills, certifications, education level, years of experience,
   and target_role. Use this for general questions about the user's
   background (e.g. "what skills do I have listed?", "what's my education?",
-  "what certifications did I upload?"), NOT for readiness scores or progress
-  over time (use get_progress_history for that) and NOT for a fresh gap
-  comparison against job postings (use get_skill_gap for that).
+  "what certifications did I upload?")
 """
 
 SYSTEM_PROMPT_TEMPLATE = """Role: You are a career-readiness advisor agent.
@@ -58,32 +76,37 @@ Keep "thought" as short as it can be while still covering the above — a few
 sentences is normally enough, don't pad it.
 
 Conventions:
-- Use get_skill_gap's resume_skills/target_role from the User context above unless
-  the user's question implies a different target_role.
 - After a tool Observation is added to the conversation, re-do this same reasoning:
   decide if the observation is now enough to answer (go to final_answer) or if
   another tool call is needed (only if truly necessary — avoid loops).
 - Be concise and conversational in final_answer — this is a chat interface, not a report.
 """
 
+
+def _get_resume_profile_dict(session_id: str) -> dict:
+    """Fetches the saved resume profile and wraps it in the shape
+    format_resume_string() expects (a 'fields' key)."""
+    profile = get_latest_resume_profile(session_id)
+    if not profile:
+        return {}
+    return {
+        "fields": {
+            "current_role_category": profile.get("current_role_category"),
+            "target_role": profile.get("target_role"),
+            "years_of_experience": profile.get("years_of_experience"),
+            "skills": json.loads(profile.get("skills") or "[]"),
+            "certifications": json.loads(profile.get("certifications") or "[]"),
+            "education_level": profile.get("education_level"),
+        }
+    }
+
+
 # function to run a tool based on the action dict returned by the model, return json result as string
 def run_tool(action: dict, session_id: str, resume_skills: list[str], target_role: str) -> str:
     tool_name = action.get("tool_name", "")
     params = action.get("parameters", {})
 
-    if tool_name == "get_skill_gap":
-        role = params.get("target_role", target_role)
-        result = run_gap_diff(resume_skills, role)
-        return json.dumps({
-            "target_role": result.target_role,
-            "readiness_score": result.readiness_score,
-            "missing_required": [m.skill for m in result.missing_required[:15]],
-            "missing_preferred": [m.skill for m in result.missing_preferred[:10]],
-            "matched_required_count": len(result.matched_required),
-            "note": "missing lists truncated to top items by frequency" if len(result.missing_required) > 15 else None,
-        })
-        
-    elif tool_name == "get_user_profile":
+    if tool_name == "get_user_profile":
         try:
             profile = get_latest_resume_profile(session_id)
             if not profile:
@@ -99,9 +122,58 @@ def run_tool(action: dict, session_id: str, resume_skills: list[str], target_rol
         except Exception as e:
             return f"ERROR: get_user_profile failed: {e}"
 
+    elif tool_name == "get_top_matches":
+        try:
+            profile_dict = _get_resume_profile_dict(session_id)
+            if not profile_dict:
+                return json.dumps({"note": "No resume profile found for this session."})
+            resume_text = format_resume_string(profile_dict)
+
+            all_postings = get_all_postings()
+            if not all_postings:
+                return json.dumps({"note": "No job postings are currently stored."})
+
+            results_df = predict_job_matches(resume_text, all_postings)
+            top_matches = results_df.head(5).to_dict(orient="records")
+            return json.dumps({"top_matches": top_matches})
+        except Exception as e:
+            return f"ERROR: get_top_matches failed: {e}"
+
+    elif tool_name == "get_skill_gap":
+        try:
+            company = params.get("company")
+            title = params.get("title")
+            if not company and not title:
+                return json.dumps({"error": "get_skill_gap requires at least a company or title."})
+
+            profile_dict = _get_resume_profile_dict(session_id)
+            if not profile_dict:
+                return json.dumps({"note": "No resume profile found for this session."})
+            resume_text = format_resume_string(profile_dict)
+
+            result = get_skill_gap_analysis(
+                collection=job_collection,
+                resume_text=resume_text,
+                company=company,
+                title=title,
+            )
+            return json.dumps(result)
+        except Exception as e:
+            return f"ERROR: get_skill_gap failed: {e}"
+
+    elif tool_name == "search_posting":
+        try:
+            query = params.get("query", "")
+            if not query:
+                return json.dumps({"error": "search_posting requires a query."})
+            matches = search_postings(query, n_results=5)
+            return json.dumps({"results": matches})
+        except Exception as e:
+            return f"ERROR: search_posting failed: {e}"
+
     else:
         return f"ERROR: Unknown tool '{tool_name}'"
-    
+
 
 
 # function to format the final answer from the model, converting raw JSON into readable text
@@ -117,15 +189,33 @@ def format_final_answer(answer: str) -> str:
         return answer
 
     parts = []
-    if "readiness_score" in data:
-        parts.append(f"Your readiness score is {data['readiness_score']}/100.")
-    if data.get("missing_required"):
-        parts.append(f"Missing required skills: {', '.join(data['missing_required'])}.")
-    if data.get("missing_preferred"):
-        parts.append(f"Missing preferred skills: {', '.join(data['missing_preferred'])}.")
-    if data.get("courses"):
-        titles = [c.get("title", "Unknown course") for c in data["courses"]]
-        parts.append("Recommended courses: " + ", ".join(titles) + ".")
+    if "tier" in data:
+        parts.append(f"Tier: {data['tier']}.")
+    if "similarity_score" in data:
+        parts.append(f"Similarity score: {data['similarity_score']}.")
+    if data.get("matched_skills"):
+        parts.append(f"Matched skills: {', '.join(data['matched_skills'])}.")
+    if data.get("deal_breaker_gaps"):
+        parts.append(f"Deal-breaker gaps: {', '.join(data['deal_breaker_gaps'])}.")
+    if data.get("core_gaps"):
+        parts.append(f"Core skills to develop: {', '.join(data['core_gaps'])}.")
+    if data.get("roadmap"):
+        milestones = [
+            f"{m.get('milestone', '')} ({m.get('estimated_months', '?')} mo)"
+            for m in data["roadmap"]
+        ]
+        parts.append("Roadmap: " + "; ".join(milestones) + ".")
+    if data.get("top_matches"):
+        titles = [
+            f"{m.get('title')} at {m.get('company')} ({m.get('tier')})"
+            for m in data["top_matches"]
+        ]
+        parts.append("Top matches: " + ", ".join(titles) + ".")
+    if data.get("results"):
+        titles = [f"{r.get('title')} at {r.get('company')}" for r in data["results"]]
+        parts.append("Found: " + ", ".join(titles) + ".")
+    if data.get("summary"):
+        parts.append(data["summary"])
     if data.get("recommendation"):
         parts.append(data["recommendation"])
     return " ".join(parts) if parts else answer
@@ -141,7 +231,7 @@ def run_agent(
     verbose: bool = True,
 ) -> str:
 
-    # Retrieve & format memory 
+    # Retrieve & format memory
     session_history, conversation_history_text = get_formatted_session_history(session_id)
 
     system_prompt = SYSTEM_PROMPT_TEMPLATE.format(
