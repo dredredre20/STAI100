@@ -37,6 +37,12 @@ def startup_event():
 
 # Function to process uploaded resume and return structured result  
 def process_uploaded_resume(uploaded_file: Path | str, target_role: str | None = None) -> dict[str, Any]:
+    """
+    param uploaded_file: path to the uploaded resume (PDF)
+    return: structured result from the resume intake pipeline
+
+    Function processing the uploaded resume file which is passed into the pipeline for extraction 
+    """
     temp_path = Path(uploaded_file)
     if not temp_path.exists():
         raise FileNotFoundError(f"Uploaded file not found: {temp_path}")
@@ -50,6 +56,12 @@ def process_uploaded_resume(uploaded_file: Path | str, target_role: str | None =
 
 # Function to persist completed profile to database and return session ID
 def persist_completed_profile(result: dict[str, Any]) -> str:
+    """
+    param result: the structured result from the resume intake pipeline
+    return: the session ID for the persisted profile
+
+    Persist the completed resume profile to the database and return the session ID.
+    """
     profile = result["validated_profile"]
     try:
         session_id = create_session()
@@ -66,8 +78,13 @@ def process_resume(
     file: UploadFile = File(...),
     target_role: str | None = Form(default=None),
 ):
-    """Non-streaming endpoint — kept for simple/synchronous callers (e.g.
-    scripts, testing) that just want the final result in one response."""
+    """
+    param file: uploaded resume file
+    return : structured result from the resume intake pipeline
+
+    Non-streaming endpoint — kept for simple/synchronous callers (e.g.
+    scripts, testing) that just want the final result in one response.
+    """
     start_ts = time.perf_counter()
 
     try:
@@ -109,9 +126,14 @@ def process_resume(
 
 # Function to generate SSE events for each pipeline stage and final result
 async def _sse_stage_generator(temp_path: Path, target_role: str | None) -> AsyncGenerator[str, None]:
-    """Yields SSE events for each pipeline stage, then a final event with the
+    """
+    param temp_path: path to the temporary uploaded resume file
+    return: AsyncGenerator yielding SSE events for each pipeline stage and final result
+
+    Yields SSE events for each pipeline stage, then a final event with the
     full structured result. Streams stage progress, not tokens, since this
-    pipeline produces structured data rather than prose until the very end."""
+    pipeline produces structured data rather than prose until the very end.
+    """
     start_ts = time.perf_counter()
 
     stages = [
@@ -170,8 +192,12 @@ async def process_resume_stream(
     file: UploadFile = File(...),
     target_role: str | None = Form(default=None),
 ):
-    """Streaming version of /process — sends stage-progress events over SSE
-    so the frontend can show live status instead of a single blocking wait."""
+    """
+    param file: uploaded resume file
+    return: StreamingResponse yielding SSE events for each pipeline stage and final result
+    Streaming version of /process — sends stage-progress events over SSE
+    so the frontend can show live status instead of a single blocking wait.
+    """
     with tempfile.NamedTemporaryFile(suffix=Path(file.filename or "resume.pdf").suffix or ".pdf", delete=False) as tmp:
         tmp.write(file.file.read())
         temp_path = Path(tmp.name)
@@ -181,7 +207,7 @@ async def process_resume_stream(
         media_type="text/event-stream",
     )
 
-
+# Pydantic model for chat request
 class ChatRequest(BaseModel):
     message: str
     session_id: str
@@ -193,6 +219,9 @@ class ChatRequest(BaseModel):
 @app.post("/chat")
 def chat(body: ChatRequest) -> dict:
     """
+    param body: ChatRquest object that will be used to generate a response from the bot
+    return: dict containing the bot's response
+
     This endpoint handles chat messages from the user and returns responses from the bot. 
     It checks the input for safety, runs the agent to generate a response, and logs the request details. 
     If an error occurs, it raises an HTTPException with a 500 status code.
@@ -202,7 +231,7 @@ def chat(body: ChatRequest) -> dict:
 
     is_safe, blocked_message = check_input(body.message) # input guardrail
 
-    if not is_safe:
+    if not is_safe: # if message is blocked by guardrail, return the blocked message and log the request
         latency_ms = (time.perf_counter() - start_ts) * 1000
         log_request(
             model=MODEL,

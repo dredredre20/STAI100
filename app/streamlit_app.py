@@ -29,6 +29,7 @@ with st.sidebar:
     st.session_state["api_base_url"] = st.text_input(
         "FastAPI base URL", value=st.session_state["api_base_url"]
     )
+    # Check API health button to confirm that the backend is reachable
     if st.button("Check API health"):
         try:
             response = requests.get(f"{st.session_state['api_base_url']}/health", timeout=10)
@@ -50,6 +51,12 @@ with st.sidebar:
 
 # function to format the profile summary for display (confirmation of pdf processing)
 def format_profile_summary(profile: dict) -> str:
+    """
+    param profile: dict containing the extracted profile information from the resume
+    return: formatted string summarizing the profile details
+
+    For example, it will include target role, current role, years of experience, education level, skills, and certifications.
+    """
     lines = [
         f"**Target role:** {profile.get('target_role')}",
         f"**Current role:** {profile.get('current_role_category') or 'Not specified'}",
@@ -67,12 +74,19 @@ def format_profile_summary(profile: dict) -> str:
 
 # function for streaming the resume processing stages from the backend API
 def stream_process_resume(file_bytes: bytes, file_name: str, target_role: str | None, status_box, response_placeholder):
-    """Consumes the /process/stream SSE endpoint."""
+    """
+    param file_bytes: bytes of the uploaded resume PDF
+    param file_name: name of the uploaded resume PDF
+    return: final result dict from the backend API after processing the resume
+
+    Consumes the /process/stream SSE endpoint.
+    """
     files = {"file": (file_name, file_bytes, "application/pdf")}
     data = {"target_role": target_role} if target_role else {}
 
     final_result = None
 
+    # Stream the response from the backend API and update the status box and response placeholder accordingly
     with requests.post(
         f"{st.session_state['api_base_url']}/process/stream",
         files=files, data=data, stream=True, timeout=180,
@@ -159,6 +173,7 @@ if uploaded_file is not None and uploaded_file.file_id != st.session_state["proc
                     "target_role": profile.get("target_role"),
                 }
 
+            # if the resume processing failed, display an error message
             else:
                 error_text = f"Sorry, I couldn't process that resume: {result.get('validation_error') if result else 'Unknown error'}"
                 response_placeholder.markdown(error_text)
@@ -228,12 +243,14 @@ if st.session_state["profile_context"] is not None:
         with st.chat_message(msg["role"]):
             st.markdown(msg["content"])
 
+    # input box for the advisor chat - suggested prompts that a user can ask the bot
     advisor_input = st.chat_input("e.g. 'Which job postings am I most qualified for?', 'What skills to i need to improve on to apply for this role at this company?', 'Can you help process my files for this role?' ")
     if advisor_input:
         st.session_state["advisor_messages"].append({"role": "user", "content": advisor_input})
         with st.chat_message("user"):
             st.markdown(advisor_input)
 
+        # send the advisor input to the backend API and display the response
         with st.chat_message("assistant"):
             with st.spinner("Thinking..."):
                 try:
