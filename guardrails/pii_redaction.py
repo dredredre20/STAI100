@@ -19,7 +19,7 @@ def redact_resume_pii(text: str) -> str:
         '[REDACTED_EMAIL]', text
     )
     text = re.sub(
-        r'\b(?:\+63[-\s]?|0)9\d{2}[-\.\s]?\d{3,4}[-\.\s]?\d{4}\b',
+        r'(?<!\w)(?:\+63[-\s]?|0)9\d{2}[-\.\s]?\d{3,4}[-\.\s]?\d{4}\b',
         '[REDACTED_PHONE]', text
     )
     text = re.sub(

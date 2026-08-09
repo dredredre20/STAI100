@@ -6,19 +6,20 @@ Using a separate, stronger judge model avoids the "model grading its own
 homework" problem — gemma4:e4b's own biases/blind spots would just be
 replicated if it judged itself.
 
-Requires ANTHROPIC_API_KEY (or your judge provider's key) to be set.
+Requires an open model key (or your judge provider's key) to be set.
 Run with: pytest evaluation/end_to_end/ -v -s
 """
 import json
 import pytest
-import anthropic  # swap for your preferred judge provider's SDK
 from react.react_agent import run_agent
 from metrics import collector
 
-JUDGE_MODEL = "claude-sonnet-4-6"  # a model NOT under test, used only to grade
+from dotenv import load_dotenv
+load_dotenv()
 
-judge_client = anthropic.Anthropic()
+from langchain_groq import ChatGroq
 
+llm = ChatGroq(model="llama-3.1-8b-instant", temperature=0.0)
 
 def llm_judge(question: str, answer: str, rubric: str) -> dict:
     """Sends the question/answer/rubric to a judge model, returns a
@@ -37,12 +38,8 @@ Grading Rubric:
 Respond with ONLY valid JSON, no markdown fences:
 {{"pass": true/false, "score": 0-10, "reasoning": "one or two sentences"}}"""
 
-    response = judge_client.messages.create(
-        model=JUDGE_MODEL,
-        max_tokens=300,
-        messages=[{"role": "user", "content": prompt}],
-    )
-    raw = response.content[0].text.strip()
+    response = llm.invoke(prompt)
+    raw = response.content.strip()
     return json.loads(raw)
 
 
