@@ -15,8 +15,8 @@ from ds_integration.skill_gap import get_skill_gap_analysis
 TOOL_DESCRIPTIONS = """
 Available Tools:
 - get_top_matches[] : Ranks all stored job postings against the user's resume
-  using semantic similarity, returning the top matches with similarity scores
-  and readiness tiers (Ready to Apply / Near Match / Long-Term Upskilling).
+  using semantic similarity, returning the top matches readiness tiers 
+  (Ready to Apply / Near Match / Long-Term Upskilling).
   Use this when the user asks what jobs they're qualified for, what they
   should apply to, or wants an overview of their best-fit postings.
 

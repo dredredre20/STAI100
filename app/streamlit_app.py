@@ -40,7 +40,7 @@ with st.sidebar:
     st.divider()
     target_role = st.selectbox(
         "Target role",
-        ["", "data_scientist", "cloud_engineering"],
+        ["data_science"],
         index=0,
         help="Optional — set this upfront to skip the follow-up question, "
              "or leave blank and I'll ask you to pick one if needed.",
@@ -222,13 +222,13 @@ if "advisor_messages" not in st.session_state:
 if st.session_state["profile_context"] is not None:
     st.divider()
     st.subheader("💬 Ask your advisor")
-    st.caption("Ask about your skill gaps, progress, or readiness for your target role.")
+    st.caption("Ask about your job matches, skill gaps, and job application support.")
 
     for msg in st.session_state["advisor_messages"]:
         with st.chat_message(msg["role"]):
             st.markdown(msg["content"])
 
-    advisor_input = st.chat_input("e.g. 'What skills am I missing?' or 'How is my readiness score?'")
+    advisor_input = st.chat_input("e.g. 'Which job postings am I most qualified for?', 'What skills to i need to improve on to apply for this role at this company?', 'Can you help process my files for this role?' ")
     if advisor_input:
         st.session_state["advisor_messages"].append({"role": "user", "content": advisor_input})
         with st.chat_message("user"):
