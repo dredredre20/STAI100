@@ -1,4 +1,6 @@
 import json
+import os
+import re
 import requests
 import streamlit as st
 
@@ -49,14 +51,9 @@ with st.sidebar:
 
     st.divider()
 
+
 # function to format the profile summary for display (confirmation of pdf processing)
 def format_profile_summary(profile: dict) -> str:
-    """
-    param profile: dict containing the extracted profile information from the resume
-    return: formatted string summarizing the profile details
-
-    For example, it will include target role, current role, years of experience, education level, skills, and certifications.
-    """
     lines = [
         f"**Target role:** {profile.get('target_role')}",
         f"**Current role:** {profile.get('current_role_category') or 'Not specified'}",
@@ -72,21 +69,56 @@ def format_profile_summary(profile: dict) -> str:
     return "\n\n".join(lines)
 
 
+# Helper function to render advisor responses with PDF download buttons
+def render_advisor_response(content: str, key_prefix: str):
+    st.markdown(content)
+    
+    pdf_path = None
+    
+    # Strategy 1: Match path from backend response
+    match = re.search(r"\[PDF Generated\]:\s*Saved to\s*(.+)", content)
+    if match:
+        extracted_path = match.group(1).strip().strip("'\"")
+        if os.path.exists(extracted_path):
+            pdf_path = extracted_path
+
+    # Strategy 2: Fallback — scan output folders for the newest PDF
+    if not pdf_path and any(term in content.lower() for term in ["cover letter", "resume", "pdf", "saved"]):
+        possible_files = []
+        # Check both directories for generated files
+        for folder in ["cover_letters", "resumes"]:
+            pdf_dir = os.path.join(os.getcwd(), "output", folder)
+            if os.path.exists(pdf_dir):
+                files = [os.path.join(pdf_dir, f) for f in os.listdir(pdf_dir) if f.endswith(".pdf")]
+                possible_files.extend(files)
+                
+        if possible_files:
+            pdf_path = max(possible_files, key=os.path.getmtime) # Select the newest file overall
+
+    # Render download button with dynamic filename
+    if pdf_path and os.path.exists(pdf_path):
+        try:
+            filename = os.path.basename(pdf_path)
+            with open(pdf_path, "rb") as f:
+                pdf_bytes = f.read()
+            st.download_button(
+                label=f"📥 Download {filename}",
+                data=pdf_bytes,
+                file_name=filename,
+                mime="application/pdf",
+                key=f"{key_prefix}_pdf_download"
+            )
+        except Exception as e:
+            st.warning(f"Could not prepare PDF for download: {e}")
+
+
 # function for streaming the resume processing stages from the backend API
 def stream_process_resume(file_bytes: bytes, file_name: str, target_role: str | None, status_box, response_placeholder):
-    """
-    param file_bytes: bytes of the uploaded resume PDF
-    param file_name: name of the uploaded resume PDF
-    return: final result dict from the backend API after processing the resume
-
-    Consumes the /process/stream SSE endpoint.
-    """
     files = {"file": (file_name, file_bytes, "application/pdf")}
     data = {"target_role": target_role} if target_role else {}
 
     final_result = None
 
-    # Stream the response from the backend API and update the status box and response placeholder accordingly
     with requests.post(
         f"{st.session_state['api_base_url']}/process/stream",
         files=files, data=data, stream=True, timeout=180,
@@ -112,7 +144,7 @@ def stream_process_resume(file_bytes: bytes, file_name: str, target_role: str | 
     return final_result
 
 
-# Render chat history 
+# Render chat history for initial resume upload
 for msg in st.session_state["messages"]:
     with st.chat_message(msg["role"]):
         st.markdown(msg["content"])
@@ -239,12 +271,16 @@ if st.session_state["profile_context"] is not None:
     st.subheader("💬 Ask your advisor")
     st.caption("Ask about your job matches, skill gaps, and job application support.")
 
-    for msg in st.session_state["advisor_messages"]:
+    # Render previous conversation history with download buttons where applicable
+    for idx, msg in enumerate(st.session_state["advisor_messages"]):
         with st.chat_message(msg["role"]):
-            st.markdown(msg["content"])
+            if msg["role"] == "assistant":
+                render_advisor_response(msg["content"], key_prefix=f"hist_{idx}")
+            else:
+                st.markdown(msg["content"])
 
-    # input box for the advisor chat - suggested prompts that a user can ask the bot
-    advisor_input = st.chat_input("e.g. 'Which job postings am I most qualified for?', 'What skills do i need to improve on to apply for this role at this company?', 'Can you help process my files for this role?' ")
+    # input box for the advisor chat
+    advisor_input = st.chat_input("e.g. 'Which job postings am I most qualified for?', 'Can you draft a cover letter for LSEG?'")
     if advisor_input:
         st.session_state["advisor_messages"].append({"role": "user", "content": advisor_input})
         with st.chat_message("user"):
@@ -263,13 +299,14 @@ if st.session_state["profile_context"] is not None:
                             "resume_skills": ctx["resume_skills"],
                             "target_role": ctx["target_role"],
                         },
-                        timeout=120,
+                        timeout=240,  # Increased timeout to 240 seconds
                     )
                     response.raise_for_status()
                     answer = response.json()["answer"]
                 except Exception as exc:
                     answer = f"Something went wrong talking to the advisor: {exc}"
-                st.markdown(answer)
+                
+                render_advisor_response(answer, key_prefix=f"new_{len(st.session_state['advisor_messages'])}")
                 st.session_state["advisor_messages"].append({"role": "assistant", "content": answer})
 else:
     st.divider()
