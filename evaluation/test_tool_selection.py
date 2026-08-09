@@ -11,6 +11,7 @@ Run with: pytest evaluation/trajectory/ -v -s
 """
 import pytest
 from react.react_agent import call_llm, parse_json, SYSTEM_PROMPT_TEMPLATE, TOOL_DESCRIPTIONS
+from metrics import collector
 
 FIXED_RESUME_SKILLS = ["Python", "SQL", "Pandas", "Selenium", "AWS"]
 FIXED_TARGET_ROLE = "data_scientist"
@@ -49,13 +50,16 @@ class TestToolRouting:
         ("can you check what gaps i need to close before applying to Wells Fargo?", "get_skill_gap"),
         ("find me some AI engineering roles", "search_posting"),
         ("what skills do I have listed on my resume?", "get_user_profile"),
+        ("I've learned how to use Databricks and Terraform, can you check my skill gaps with the role again?", "update_skills"), 
+        ("I did a course on advanced python programming and did a data analysis project, check my skill gap again for the role", "update_skills")
     ])
+
     def test_correct_tool_selected(self, user_message, expected_tool):
         action = get_first_action(user_message)
         assert action is not None, f"Expected a tool call for '{user_message}', got a direct final_answer instead"
-        assert action["tool_name"] == expected_tool, (
-            f"For '{user_message}': expected {expected_tool}, got {action['tool_name']}"
-        )
+        correct = action["tool_name"] == expected_tool
+        collector.record("tool_selection_accuracy", 1.0 if correct else 0.0)
+        assert correct, f"For '{user_message}': expected {expected_tool}, got {action['tool_name']}"
 
     def test_skill_gap_extracts_company_param(self):
         action = get_first_action("what am I missing for the Data Scientist role at LSEG?")
@@ -63,6 +67,14 @@ class TestToolRouting:
         params = action.get("parameters", {})
         assert params.get("company") or params.get("title"), (
             "get_skill_gap was called with no company or title — agent will fail to resolve the job posting"
+        )
+
+    def test_update_skills_extracts_params(self):
+        action = get_first_action("I've learned how to use Databricks and Terraform, can you check my skill gaps with the role again?")
+        assert action["tool_name"] == "update_skills"
+        params = action.get("parameters", {})
+        assert params.get("new_skills") or params.get("new_certifications"), (
+            "update_skills was called with no new_skills or new_certifications"
         )
 
     def test_does_not_call_tool_when_answer_already_in_history(self):
@@ -88,3 +100,10 @@ class TestToolRouting:
         assert data.get("action") is None, (
             "Agent called a tool for info already present in conversation history"
         )
+
+    # Overall accuracy threshold is 80% since this is only a career readiness model and not a life-critical system
+    # We can adjust this to a 90% to hold the system to a higher standard it should perform better all the time
+    def test_tool_selection_accuracy_meets_threshold(self):
+        accuracy = collector.mean("tool_selection_accuracy")
+        print(f"\nTool selection accuracy: {accuracy:.1%} ({collector.count('tool_selection_accuracy')} cases)")
+        assert accuracy >= 0.8, f"Accuracy {accuracy:.1%} below 80% threshold"

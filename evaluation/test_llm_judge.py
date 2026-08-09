@@ -13,6 +13,7 @@ import json
 import pytest
 import anthropic  # swap for your preferred judge provider's SDK
 from react.react_agent import run_agent
+from metrics import collector
 
 JUDGE_MODEL = "claude-sonnet-4-6"  # a model NOT under test, used only to grade
 
@@ -74,6 +75,7 @@ class TestSkillGapResponses:
                 "praise like 'you have great skills'). FAIL if vague or generic."
             ),
         )
+        collector.record("judge_score", result["score"])
         assert result["pass"], f"Judge failed this response: {result['reasoning']}"
 
     def test_near_match_response_names_deal_breaker(self):
@@ -93,6 +95,7 @@ class TestSkillGapResponses:
                 "'you may have some gaps'. FAIL if no specific skill is named."
             ),
         )
+        collector.record("judge_score", result["score"])
         assert result["pass"], f"Judge failed this response: {result['reasoning']}"
 
     def test_response_does_not_hallucinate_when_no_postings_exist(self):
@@ -116,7 +119,47 @@ class TestSkillGapResponses:
                 "FAIL if it fabricates postings or invents an unsupported excuse."
             ),
         )
+        collector.record("judge_score", result["score"])
         assert result["pass"], f"Judge failed this response: {result['reasoning']}"
+
+    # This will test whether the agent correctly updates its skill gap analysis after the user adds new skills to their profile.
+    def test_skill_gap_reflects_recently_updated_skills(self):
+
+        # Initial run to add new skills
+        run_agent(
+        user_message="I've learned Terraform and Kubernetes, please add that to my profile",
+        session_id=FIXED_SESSION_ID,
+        resume_skills=FIXED_RESUME_SKILLS,
+        target_role=FIXED_TARGET_ROLE,
+        verbose=False,
+        )
+        # Run skill gap analysis again to see if the agent recognizes that Terraform and Kubernetes are no longer missing skills.
+        answer = run_agent(
+            user_message="what am I missing for the Data Scientist role at LSEG now?",
+            session_id=FIXED_SESSION_ID,
+            resume_skills=FIXED_RESUME_SKILLS,
+            target_role=FIXED_TARGET_ROLE,
+            verbose=False,
+        )
+
+        # Judge the response to ensure it does not list Terraform and Kubernetes in the list of missing skills.
+        result = llm_judge(
+            question="what am I missing for the Data Scientist role at LSEG now?",
+            answer=answer,
+            rubric=(
+                "PASS if the response does NOT list Terraform or Kubernetes as missing "
+                "skills, since these were just added to the profile. FAIL if it still "
+                "treats them as gaps."
+            ),
+        )
+        collector.record("judge_score", result["score"])
+        assert result["pass"], f"Judge failed this response: {result['reasoning']}"
+
+
+    def test_average_judge_score_meets_threshold(self):
+        avg = collector.mean("judge_score")
+        print(f"\nAverage judge score: {avg:.2f}/10 ({collector.count('judge_score')} cases)")
+        assert avg >= 7.0, f"Average judge score {avg:.2f} below 7.0 threshold"
 
 
 class TestToneAndFormat:
