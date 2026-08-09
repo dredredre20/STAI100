@@ -34,15 +34,19 @@ app.add_middleware(
 
 @app.on_event("startup")
 def startup_event():
+    """Initialize the database when the FastAPI app starts."""
     init_db()
 
-# Function to process uploaded resume and return structured result  
-def process_uploaded_resume(uploaded_file: Path | str, target_role: str | None = None) -> dict[str, Any]:
-    """
-    param uploaded_file: path to the uploaded resume (PDF)
-    return: structured result from the resume intake pipeline
 
-    Function processing the uploaded resume file which is passed into the pipeline for extraction 
+def process_uploaded_resume(uploaded_file: Path | str, target_role: str | None = None) -> dict[str, Any]:
+    """Process an uploaded resume file through the intake pipeline.
+
+    Args:
+        uploaded_file: Path or string pointing to the uploaded PDF file.
+        target_role: Optional target role override to apply during extraction.
+
+    Returns:
+        A structured dictionary containing the extracted profile and validation status.
     """
     temp_path = Path(uploaded_file)
     if not temp_path.exists():
@@ -55,13 +59,14 @@ def process_uploaded_resume(uploaded_file: Path | str, target_role: str | None =
         target_role_override=target_role,
     )
 
-# Function to persist completed profile to database and return session ID
 def persist_completed_profile(result: dict[str, Any]) -> str:
-    """
-    param result: the structured result from the resume intake pipeline
-    return: the session ID for the persisted profile
+    """Persist a validated resume profile to the database and return a new session ID.
 
-    Persist the completed resume profile to the database and return the session ID.
+    Args:
+        result: The structured resume-processing result from the intake pipeline.
+
+    Returns:
+        The newly created session ID for the saved profile.
     """
     profile = result["validated_profile"]
     try:
@@ -73,18 +78,22 @@ def persist_completed_profile(result: dict[str, Any]) -> str:
         raise
 
 
-# Function to process uploaded resume and return structured result (non-streaming)
 @app.post("/process")
 def process_resume(
     file: UploadFile = File(...),
     target_role: str | None = Form(default=None),
 ):
-    """
-    param file: uploaded resume file
-    return : structured result from the resume intake pipeline
+    """Process an uploaded resume and return the final structured result.
 
-    Non-streaming endpoint — kept for simple/synchronous callers (e.g.
-    scripts, testing) that just want the final result in one response.
+    This is the non-streaming endpoint used by simple clients that want the complete result in
+    a single response.
+
+    Args:
+        file: The uploaded resume file.
+        target_role: Optional target-role override supplied by the client.
+
+    Returns:
+        A dictionary describing the extraction result and any validation state.
     """
 
     start_ts = time.perf_counter()
@@ -127,15 +136,15 @@ def process_resume(
         raise HTTPException(status_code=500, detail=str(exc)) from exc
 
 
-# Function to generate SSE events for each pipeline stage and final result
 async def _sse_stage_generator(temp_path: Path, target_role: str | None) -> AsyncGenerator[str, None]:
-    """
-    param temp_path: path to the temporary uploaded resume file
-    return: AsyncGenerator yielding SSE events for each pipeline stage and final result
+    """Yield SSE events for each resume-processing stage and the final result.
 
-    Yields SSE events for each pipeline stage, then a final event with the
-    full structured result. Streams stage progress, not tokens, since this
-    pipeline produces structured data rather than prose until the very end.
+    Args:
+        temp_path: Path to the temporary uploaded resume file.
+        target_role: Optional target-role override passed to the processing pipeline.
+
+    Yields:
+        Server-sent events describing progress updates and the final structured output.
     """
     start_ts = time.perf_counter()
 
@@ -191,17 +200,22 @@ async def _sse_stage_generator(temp_path: Path, target_role: str | None) -> Asyn
         yield "data: [DONE]\n\n"
 
 
-# Function to process uploaded resume and return structured result (streaming via SSE)
 @app.post("/process/stream")
 async def process_resume_stream(
     file: UploadFile = File(...),
     target_role: str | None = Form(default=None),
 ):
-    """
-    param file: uploaded resume file
-    return: StreamingResponse yielding SSE events for each pipeline stage and final result
-    Streaming version of /process — sends stage-progress events over SSE
-    so the frontend can show live status instead of a single blocking wait.
+    """Stream resume-processing progress and results over Server-Sent Events.
+
+    This endpoint is used by the frontend to show live status updates while the backend runs the
+    resume intake pipeline.
+
+    Args:
+        file: The uploaded resume file.
+        target_role: Optional target-role override supplied by the client.
+
+    Returns:
+        A StreamingResponse that emits stage updates and the final processing result.
     """
     with tempfile.NamedTemporaryFile(suffix=Path(file.filename or "resume.pdf").suffix or ".pdf", delete=False) as tmp:
         tmp.write(file.file.read())
@@ -212,7 +226,6 @@ async def process_resume_stream(
         media_type="text/event-stream",
     )
 
-# Pydantic model for chat request
 class ChatRequest(BaseModel):
     message: str
     session_id: str
@@ -220,16 +233,18 @@ class ChatRequest(BaseModel):
     target_role: str
 
 
-# Function to handle chat messages from the user and return bot responses
 @app.post("/chat")
 def chat(body: ChatRequest) -> dict:
-    """
-    param body: ChatRquest object that will be used to generate a response from the bot
-    return: dict containing the bot's response
+    """Handle user chat requests and return the advisor's response.
 
-    This endpoint handles chat messages from the user and returns responses from the bot. 
-    It checks the input for safety, runs the agent to generate a response, and logs the request details. 
-    If an error occurs, it raises an HTTPException with a 500 status code.
+    The endpoint first applies the input guardrail, then runs the agent loop to generate a
+    reply based on the resume context and conversation history.
+
+    Args:
+        body: Request payload containing the message, session ID, and resume context.
+
+    Returns:
+        A dictionary containing the generated answer.
     """
 
     start_ts = time.perf_counter()
