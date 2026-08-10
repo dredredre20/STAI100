@@ -13,7 +13,7 @@ import json
 import pytest
 from react.react_agent import run_agent
 from metrics import collector
-from sesion_helpers import FIXED_SESSION_ID, FIXED_RESUME_SKILLS, FIXED_TARGET_ROLE, llm
+from session_helpers import FIXED_SESSION_ID, FIXED_RESUME_SKILLS, FIXED_TARGET_ROLE, llm, reset_fixed_session
 
 
 def llm_judge(question: str, answer: str, rubric: str) -> dict:
@@ -31,7 +31,7 @@ Grading Rubric:
 {rubric}
 
 Respond with ONLY valid JSON, no markdown fences:
-{{"pass": true/false, "score": 0-10, "reasoning": "one or two sentences"}}"""
+{{"pass": true/false, "score": 0-5, "reasoning": "one or two sentences"}}"""
 
     response = llm.invoke(prompt)
     raw = response.content.strip()
@@ -139,11 +139,16 @@ class TestSkillGapResponses:
         assert result["pass"], f"Judge failed this response: {result['reasoning']}"
 
 
-    # I think this test should be fixed
-    # def test_average_judge_score_meets_threshold(self):
-    #     avg = collector.mean("judge_score")
-    #     print(f"\nAverage judge score: {avg:.2f}/{collector.count('judge_score')} ({collector.count('judge_score')} cases)")
-    #     assert avg >= 7.0, f"Average judge score {avg:.2f} below 7.0 threshold"
+   
+    def test_average_judge_score_meets_threshold(self):
+        """
+        This test check the average judge score across all tests cases. 
+        We expect that 80% of the test cases will be passing which is why the threshold is set to 4.0.
+        """
+
+        avg = collector.mean("judge_score")
+        print(f"\nAverage judge score: {avg:.2f}/5 ({collector.count('judge_score')} cases)")
+        assert avg >= 4.0, f"Average judge score {avg:.2f} below 4.0 threshold"
 
 
 class TestToneAndFormat:
