@@ -51,11 +51,7 @@ with st.sidebar:
 
     st.divider()
 
-<<<<<<< HEAD
 
-# function to format the profile summary for display (confirmation of pdf processing)
-def format_profile_summary(profile: dict) -> str:
-=======
 def format_profile_summary(profile: dict) -> str:
     """Format the extracted resume profile into a readable summary for the UI.
 
@@ -65,7 +61,6 @@ def format_profile_summary(profile: dict) -> str:
     Returns:
         A multi-line string describing the main profile attributes.
     """
->>>>>>> 0ae39bd94b85b255ff060f912ab908a1d40fe76f
     lines = [
         f"**Target role:** {profile.get('target_role')}",
         f"**Current role:** {profile.get('current_role_category') or 'Not specified'}",
@@ -81,53 +76,49 @@ def format_profile_summary(profile: dict) -> str:
     return "\n\n".join(lines)
 
 
-<<<<<<< HEAD
-# Helper function to render advisor responses with PDF download buttons
+# Helper function to render advisor responses with DOCX download buttons
 def render_advisor_response(content: str, key_prefix: str):
     st.markdown(content)
     
-    pdf_path = None
+    docx_path = None
     
     # Strategy 1: Match path from backend response
-    match = re.search(r"\[PDF Generated\]:\s*Saved to\s*(.+)", content)
+    match = re.search(r"\[DOCX Generated\]:\s*Saved to\s*(.+)", content)
     if match:
         extracted_path = match.group(1).strip().strip("'\"")
         if os.path.exists(extracted_path):
-            pdf_path = extracted_path
+            docx_path = extracted_path
 
-    # Strategy 2: Fallback — scan output folders for the newest PDF
-    if not pdf_path and any(term in content.lower() for term in ["cover letter", "resume", "pdf", "saved"]):
+    # Strategy 2: Fallback — scan output folders for the newest DOCX
+    if not docx_path and any(term in content.lower() for term in ["cover letter", "resume", "docx", "saved"]):
         possible_files = []
         # Check both directories for generated files
         for folder in ["cover_letters", "resumes"]:
-            pdf_dir = os.path.join(os.getcwd(), "output", folder)
-            if os.path.exists(pdf_dir):
-                files = [os.path.join(pdf_dir, f) for f in os.listdir(pdf_dir) if f.endswith(".pdf")]
+            docx_dir = os.path.join(os.getcwd(), "output", folder)
+            if os.path.exists(docx_dir):
+                files = [os.path.join(docx_dir, f) for f in os.listdir(docx_dir) if f.endswith(".docx")]
                 possible_files.extend(files)
                 
         if possible_files:
-            pdf_path = max(possible_files, key=os.path.getmtime) # Select the newest file overall
+            docx_path = max(possible_files, key=os.path.getmtime) # Select the newest file overall
 
     # Render download button with dynamic filename
-    if pdf_path and os.path.exists(pdf_path):
+    if docx_path and os.path.exists(docx_path):
         try:
-            filename = os.path.basename(pdf_path)
-            with open(pdf_path, "rb") as f:
-                pdf_bytes = f.read()
+            filename = os.path.basename(docx_path)
+            with open(docx_path, "rb") as f:
+                docx_bytes = f.read()
             st.download_button(
                 label=f"📥 Download {filename}",
-                data=pdf_bytes,
+                data=docx_bytes,
                 file_name=filename,
-                mime="application/pdf",
-                key=f"{key_prefix}_pdf_download"
+                mime="application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+                key=f"{key_prefix}_docx_download"
             )
         except Exception as e:
-            st.warning(f"Could not prepare PDF for download: {e}")
+            st.warning(f"Could not prepare DOCX for download: {e}")
 
 
-# function for streaming the resume processing stages from the backend API
-def stream_process_resume(file_bytes: bytes, file_name: str, target_role: str | None, status_box, response_placeholder):
-=======
 def stream_process_resume(file_bytes: bytes, file_name: str, target_role: str | None, status_box, response_placeholder):
     """Stream resume-processing events from the backend and return the final result.
 
@@ -141,7 +132,6 @@ def stream_process_resume(file_bytes: bytes, file_name: str, target_role: str | 
     Returns:
         The final processing result dictionary emitted by the backend.
     """
->>>>>>> 0ae39bd94b85b255ff060f912ab908a1d40fe76f
     files = {"file": (file_name, file_bytes, "application/pdf")}
     data = {"target_role": target_role} if target_role else {}
 
@@ -172,11 +162,7 @@ def stream_process_resume(file_bytes: bytes, file_name: str, target_role: str | 
     return final_result
 
 
-<<<<<<< HEAD
-# Render chat history for initial resume upload
-=======
 # Render chat history from the current session.
->>>>>>> 0ae39bd94b85b255ff060f912ab908a1d40fe76f
 for msg in st.session_state["messages"]:
     with st.chat_message(msg["role"]):
         st.markdown(msg["content"])

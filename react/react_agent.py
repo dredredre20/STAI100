@@ -1,13 +1,10 @@
-import html
 import json
 import os
 import re
 import ollama
 from datetime import datetime
-from reportlab.lib.pagesizes import letter
-from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
-from reportlab.platypus import SimpleDocTemplate, Paragraph, Spacer
-from reportlab.lib import colors
+from docx import Document
+from docx.shared import Inches, Pt
 
 from config import MODEL, OLLAMA_BASE_URL
 from memory.db_memory import (
@@ -51,12 +48,12 @@ Available Tools:
   profile — skills, certifications, education level, years of experience,
   and target_role.
 
-- generate_cover_letter[company, title] : Generates a customized cover letter and PDF. 
+- generate_cover_letter[company, title] : Generates a customized cover letter and DOCX. 
   CRITICAL: Use this ONLY when the user explicitly asks to draft, write, or generate 
   a cover letter (e.g., "write a cover letter for X"). DO NOT trigger this for general 
   questions, advice, or skill gap queries. Both `company` and `title` parameters are required.
 
-- generate_targeted_resume[company, title] : Generates a full, professionally formatted resume PDF. 
+- generate_targeted_resume[company, title] : Generates a full, professionally formatted resume DOCX. 
   CRITICAL: Use this ONLY when the user explicitly asks to generate, build, or format 
   a resume (e.g., "generate a tailored resume for X"). DO NOT trigger this during standard 
   conversations or skill gap queries. Both `company` and `title` parameters are required.
@@ -87,7 +84,7 @@ Every response has this shape:
 Exactly one of "action" or "final_answer" must be non-null. The other must be null.
 
 Conventions:
-- When calling `generate_cover_letter` or `generate_targeted_resume`, your `final_answer` in the following turn MUST output the exact text of the document AND notify the user that the PDF file has been generated and saved by stating exactly: "[PDF Generated]: Saved to <path>".
+- When calling `generate_cover_letter` or `generate_targeted_resume`, your `final_answer` in the following turn MUST output the exact text of the document AND notify the user that the DOCX file has been generated and saved by stating exactly: "[DOCX Generated]: Saved to <path>".
 - Be concise and conversational in final_answer — this is a chat interface, not a report.
 """
 
@@ -108,88 +105,73 @@ def _get_resume_profile_dict(session_id: str) -> dict:
     }
 
 
-def generate_pdf_cover_letter(cover_letter_text: str, output_path: str) -> str:
+def generate_docx_cover_letter(cover_letter_text: str, output_path: str) -> str:
     """
-    Compiles the provided cover letter plain text into a PDF document following standard typography margins.
+    Compiles the provided cover letter plain text into a DOCX document.
     """
     os.makedirs(os.path.dirname(output_path), exist_ok=True)
-    doc = SimpleDocTemplate(
-        output_path,
-        pagesize=letter,
-        rightMargin=54,
-        leftMargin=54,
-        topMargin=54,
-        bottomMargin=54
-    )
-    styles = getSampleStyleSheet()
-    
-    body_style = ParagraphStyle(
-        'CoverLetterBody',
-        parent=styles['Normal'],
-        fontName='Helvetica',
-        fontSize=10.5,
-        leading=15,
-        textColor=colors.HexColor("#1A1A1A"),
-        spaceAfter=10
-    )
-    
-    story = []
+    doc = Document()
+
+    for section in doc.sections:
+        section.top_margin = Inches(0.75)
+        section.bottom_margin = Inches(0.75)
+        section.left_margin = Inches(0.75)
+        section.right_margin = Inches(0.75)
+
     lines = cover_letter_text.strip().split("\n")
     for line in lines:
         cleaned_line = line.strip()
-        if cleaned_line:
-            safe_line = html.escape(cleaned_line)
-            formatted_line = re.sub(r'\*\*(.*?)\*\*', r'<b>\1</b>', safe_line)
-            story.append(Paragraph(formatted_line, body_style))
-        else:
-            story.append(Spacer(1, 6))
-            
-    doc.build(story)
+        p = doc.add_paragraph()
+        p.paragraph_format.space_after = Pt(4)
+        p.paragraph_format.line_spacing = 1.15
+
+        if not cleaned_line:
+            continue
+
+        tokens = re.split(r'(\*\*.*?\*\*)', cleaned_line)
+        for token in tokens:
+            if token.startswith("**") and token.endswith("**"):
+                run = p.add_run(token[2:-2])
+                run.bold = True
+            else:
+                p.add_run(token)
+
+    doc.save(output_path)
     return output_path
 
 
-def generate_pdf_resume(resume_text: str, output_path: str) -> str:
+def generate_docx_resume(resume_text: str, output_path: str) -> str:
     """
-    Compiles the tailored resume text into a Harvard-formatted PDF document safely.
+    Compiles the tailored resume text into a Harvard-formatted DOCX document safely.
     """
     os.makedirs(os.path.dirname(output_path), exist_ok=True)
-    doc = SimpleDocTemplate(
-        output_path,
-        pagesize=letter,
-        rightMargin=36,
-        leftMargin=36,
-        topMargin=36,
-        bottomMargin=36
-    )
-    styles = getSampleStyleSheet()
-    
-    body_style = ParagraphStyle(
-        'HarvardBody',
-        parent=styles['Normal'],
-        fontName='Helvetica',
-        fontSize=10,
-        leading=13.5,
-        textColor=colors.HexColor("#1A1A1A"),
-        spaceAfter=3
-    )
-    
-    story = []
+    doc = Document()
+
+    for section in doc.sections:
+        section.top_margin = Inches(0.5)
+        section.bottom_margin = Inches(0.5)
+        section.left_margin = Inches(0.5)
+        section.right_margin = Inches(0.5)
+
     lines = resume_text.strip().split("\n")
     for line in lines:
         cleaned_line = line.strip()
         if not cleaned_line:
-            story.append(Spacer(1, 4))
             continue
 
-        safe_line = html.escape(cleaned_line)
-        formatted_line = re.sub(r'\*\*(.*?)\*\*', r'<b>\1</b>', safe_line)
+        p = doc.add_paragraph()
+        p.paragraph_format.space_after = Pt(2)
+        p.paragraph_format.line_spacing = 1.15
 
-        try:
-            story.append(Paragraph(formatted_line, body_style))
-        except Exception:
-            story.append(Paragraph(safe_line, body_style))
-            
-    doc.build(story)
+        tokens = re.split(r'(\*\*.*?\*\*)', cleaned_line)
+        for token in tokens:
+            if token.startswith("**") and token.endswith("**"):
+                run = p.add_run(token[2:-2])
+                run.bold = True
+            else:
+                p.add_run(token)
+
+    doc.save(output_path)
     return output_path
 
 
@@ -376,17 +358,17 @@ Format Requirements:
             cover_letter_text = call_llm(prompt_messages)
 
             clean_company = company.strip()
-            pdf_filename = f"Cover letter - {clean_company}.pdf"
-            pdf_dir = os.path.join(os.getcwd(), "output", "cover_letters")
-            pdf_path = os.path.join(pdf_dir, pdf_filename)
+            docx_filename = f"Cover letter - {clean_company}.docx"
+            docx_dir = os.path.join(os.getcwd(), "output", "cover_letters")
+            docx_path = os.path.join(docx_dir, docx_filename)
             
-            generate_pdf_cover_letter(cover_letter_text, pdf_path)
+            generate_docx_cover_letter(cover_letter_text, docx_path)
 
             return json.dumps({
                 "company": company,
                 "title": title,
                 "cover_letter": cover_letter_text,
-                "pdf_path": pdf_path
+                "docx_path": docx_path
             })
         except Exception as e:
             return f"ERROR: generate_cover_letter failed: {e}"
@@ -482,17 +464,17 @@ MANDATORY BULLET RULES:
             targeted_resume_text = call_llm(prompt_messages)
 
             clean_company = company.strip()
-            pdf_filename = f"Targeted Resume - {clean_company}.pdf"
-            pdf_dir = os.path.join(os.getcwd(), "output", "resumes")
-            pdf_path = os.path.join(pdf_dir, pdf_filename)
+            docx_filename = f"Targeted Resume - {clean_company}.docx"
+            docx_dir = os.path.join(os.getcwd(), "output", "resumes")
+            docx_path = os.path.join(docx_dir, docx_filename)
             
-            generate_pdf_resume(targeted_resume_text, pdf_path)
+            generate_docx_resume(targeted_resume_text, docx_path)
 
             return json.dumps({
                 "company": company,
                 "title": title,
                 "targeted_resume": targeted_resume_text,
-                "pdf_path": pdf_path
+                "docx_path": docx_path
             })
         except Exception as e:
             return f"ERROR: generate_targeted_resume failed: {e}"
@@ -512,13 +494,13 @@ def format_final_answer(answer: str) -> str:
     parts = []
     if data.get("cover_letter"):
         parts.append(data["cover_letter"])
-        if data.get("pdf_path"):
-            parts.append(f"\n\n[PDF Generated]: Saved to {data['pdf_path']}")
+        if data.get("docx_path"):
+            parts.append(f"\n\n[DOCX Generated]: Saved to {data['docx_path']}")
             
     if data.get("targeted_resume"):
         parts.append(data["targeted_resume"])
-        if data.get("pdf_path"):
-            parts.append(f"\n\n[PDF Generated]: Saved to {data['pdf_path']}")
+        if data.get("docx_path"):
+            parts.append(f"\n\n[DOCX Generated]: Saved to {data['docx_path']}")
             
     if data.get("top_matches"):
         titles = [f"{m.get('title')} at {m.get('company')} ({m.get('tier')})" for m in data["top_matches"]]
