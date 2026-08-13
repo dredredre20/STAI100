@@ -1,4 +1,6 @@
 from collections import defaultdict
+import math
+import statistics
 
 # Evaluation metrics for information retrieval tasks - precision, recall, reciprocal rank taken from week 11 lab nb
 
@@ -42,6 +44,25 @@ def reciprocal_rank(retrieved_ids, relevant_ids):
             return 1 / i
     return 0.0
 
+def ndcg_at_k(retrieved_ids, relevant_ids, k):
+    """
+    param retrieved_ids: list of retrieved document IDs 
+    param relevant_ids: set of relevant document IDs
+    param k: the cutoff rank for evaluation
+    return computed normalized discounted cumulative gain at k
+
+    Function for computing the normalized discounted cumulative gain at k given a set of documents retrieved by the model and relevant documents for the query.
+    """
+    dcg = 0.0
+    idcg = 0.0
+    for i in range(k):
+        if i < len(retrieved_ids) and retrieved_ids[i] in relevant_ids:
+            dcg += 1 / (math.log2(i + 2))  # log2(i + 2) because i is 0-indexed
+        if i < len(relevant_ids):
+            idcg += 1 / (math.log2(i + 2))
+    return dcg / idcg if idcg > 0 else 0.0
+
+
 # Storage for the eval metrics which is used across all test files.
 class EvaluationMetrics:
     """
@@ -57,15 +78,28 @@ class EvaluationMetrics:
     def record(self, name: str, value: float):
         self._values[name].append(value)
 
-    def mean(self, name: str) -> float:
-        vals = self._values.get(name, [])
-        return sum(vals) / len(vals) if vals else 0.0
-
     def count(self, name: str) -> int:
         return len(self._values.get(name, []))
+    
+    def mean(self, name: str) -> float:
+        vals = self._values.get(name, [])
+        return statistics.mean(vals) if vals else 0.0
+
+    def stats(self, name: str) -> dict:
+        vals = self._values.get(name, [])
+        if not vals:
+            return {"count": 0, "mean": 0.0, "std": 0.0, "min": 0.0, "max": 0.0}
+        
+        return {
+            "count": len(vals),
+            "mean": statistics.mean(vals),
+            "std": statistics.stdev(vals) if len(vals) > 1 else 0.0,
+            "min": min(vals),
+            "max": max(vals),
+        }
 
     def summary(self) -> dict:
-        return {name: self.mean(name) for name in self._values}
+        return {name: self.stats(name) for name in self._values}
 
 
 collector = EvaluationMetrics() # Singleton instance of EvaluationMetrics to be used across all test files

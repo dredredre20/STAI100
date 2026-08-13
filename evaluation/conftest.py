@@ -18,6 +18,8 @@ def pytest_sessionfinish(session, exitstatus):
     collected evaluation metrics."""
     print("\n\n=== Evaluation Metrics Summary ===")
     summary = collector.summary()
-    for name, mean_value in summary.items():
-        count = collector.count(name)
-        print(f"{name}: mean={mean_value:.4f} over {count} samples")
+    for name, s in summary.items():
+        print(
+            f"{name:<22} | mean={s['mean']:.4f} | std={s['std']:.4f} "
+            f"| min={s['min']:.2f} | max={s['max']:.2f} | samples={s['count']}"
+        )
