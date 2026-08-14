@@ -1,8 +1,14 @@
 """
 Targeted resume generation: builds a Harvard-format tailored resume via the
-LLM and compiles it into a DOCX file. Split out of react_agent.py so the
-document-generation logic for resumes lives independently of the agent's
-tool-dispatch loop.
+LLM and compiles it into a DOCX file.
+
+This module is designed to be called by the ReAct agent as part of the
+resume-generation workflow. It:
+1. Loads the user’s latest profile from memory,
+2. Compares it against a target job via skill-gap analysis,
+3. Prompts the LLM to draft a Harvard-formatted resume,
+4. Saves the result as a DOCX file,
+5. Returns the generated text and path as a JSON payload.
 """
 
 import json
@@ -21,8 +27,20 @@ from ds_integration.skill_gap import get_skill_gap_analysis
 
 def generate_docx_resume(resume_text: str, output_path: str) -> str:
     """
-    Compiles the tailored resume text into a Harvard-formatted DOCX document safely.
+    Compile a plain-text resume into a DOCX file.
+
+    The function converts the generated resume into a document while preserving
+    bold formatting for section labels such as **EDUCATION** and **EXPERIENCE**.
+    This keeps the output readable and visually close to a standard resume layout.
+
+    Args:
+        resume_text: Plain text resume content returned by the LLM.
+        output_path: Full filesystem path where the DOCX file should be created.
+
+    Returns:
+        The saved DOCX path as a string.
     """
+
     os.makedirs(os.path.dirname(output_path), exist_ok=True)
     doc = Document()
 
@@ -60,14 +78,25 @@ def run_generate_targeted_resume(
     call_llm: Callable[[list], str],
 ) -> str:
     """
-    Executes the `generate_targeted_resume` tool end-to-end: fetches the
-    user's resume profile, runs a gap analysis, asks the LLM to draft a
-    Harvard-format resume, saves it as a DOCX, and returns a JSON string
-    with the result.
+    Generate a job-targeted resume end-to-end.
 
-    `call_llm` is injected by the caller (react_agent.py) to avoid a
-    circular import between this module and the agent module.
+    This function:
+    - reads the user profile from the active session,
+    - retrieves a job/company context,
+    - analyzes the skill gap between the profile and the target role,
+    - prompts the LLM to generate a Harvard-formatted resume,
+    - writes the document to disk as DOCX,
+    - returns a JSON payload containing both the text and output path.
+
+    Args:
+        params: Request payload containing at least "company" and "title".
+        session_id: Active conversation/session ID for loading stored profile data.
+        call_llm: Injected LLM callback used to avoid circular imports.
+
+    Returns:
+        JSON string containing either the generated resume payload or an error note.
     """
+    
     try:
         company = params.get("company")
         title = params.get("title")
