@@ -1,10 +1,6 @@
 import json
-import os
 import re
 import ollama
-from datetime import datetime
-from docx import Document
-from docx.shared import Inches, Pt
 
 from config import MODEL, OLLAMA_BASE_URL
 from memory.db_memory import (
@@ -15,10 +11,12 @@ from memory.conversation_memory import (
     get_formatted_session_history,
     save_session_turn
 )
-from ds_integration.ingest_job_postings import job_collection
 from ds_integration.job_fit_prediction import predict_job_matches, format_resume_string
 from ds_integration.job_search import get_all_postings, search_postings
 from ds_integration.skill_gap import get_skill_gap_analysis
+from ds_integration.ingest_job_postings import job_collection
+from resume_cover_generation.cover_letter_generation import run_generate_cover_letter
+from resume_cover_generation.resume_generation import run_generate_targeted_resume
 
 TOOL_DESCRIPTIONS = """
 Available Tools:
@@ -88,6 +86,45 @@ Conventions:
 - Be concise and conversational in final_answer — this is a chat interface, not a report.
 """
 
+# ── Code-level guardrail against over-triggering document tools ─────────────
+# Requires an actual action verb to appear *next to* "cover letter" / "resume"
+# in the user's latest message, rather than matching on generic single words
+# like "resume" or "write" anywhere in the message. A plain single-word match
+# (the previous approach) false-positives constantly in this app, since almost
+# every message in a resume/job-fit conversation contains the word "resume"
+# somewhere (e.g. "What does my resume need to qualify for X?") even when the
+# user isn't asking for a document to be generated.
+_ACTION_VERBS = r"(write|draft|generate|create|make|build|prepare|put together|produce|compose)"
+_PROXIMITY = r"[^.?!\n]{0,60}"
+
+_COVER_LETTER_REQUEST_RE = re.compile(
+    rf"\b{_ACTION_VERBS}\w*\b{_PROXIMITY}\bcover letter\b"
+    rf"|\bcover letter\b{_PROXIMITY}\b{_ACTION_VERBS}\w*\b",
+    re.IGNORECASE,
+)
+_RESUME_REQUEST_RE = re.compile(
+    rf"\b{_ACTION_VERBS}\w*\b{_PROXIMITY}\b(targeted |tailored |new )?resume\b"
+    rf"|\b(targeted|tailored) resume\b"
+    rf"|\bresume\b{_PROXIMITY}\b{_ACTION_VERBS}\w*\b",
+    re.IGNORECASE,
+)
+
+
+def _document_request_allowed(tool_name: str, user_message: str) -> bool:
+    """
+    Returns True only if the user's latest message contains an explicit,
+    unambiguous request to generate the given document type. Used as a
+    code-level safety net in case the LLM decides to call a document
+    tool without having been asked to.
+    """
+    if not user_message:
+        return False
+    if tool_name == "generate_cover_letter":
+        return bool(_COVER_LETTER_REQUEST_RE.search(user_message))
+    if tool_name == "generate_targeted_resume":
+        return bool(_RESUME_REQUEST_RE.search(user_message))
+    return True
+
 
 def _get_resume_profile_dict(session_id: str) -> dict:
     profile = get_latest_resume_profile(session_id)
@@ -105,76 +142,6 @@ def _get_resume_profile_dict(session_id: str) -> dict:
     }
 
 
-def generate_docx_cover_letter(cover_letter_text: str, output_path: str) -> str:
-    """
-    Compiles the provided cover letter plain text into a DOCX document.
-    """
-    os.makedirs(os.path.dirname(output_path), exist_ok=True)
-    doc = Document()
-
-    for section in doc.sections:
-        section.top_margin = Inches(0.75)
-        section.bottom_margin = Inches(0.75)
-        section.left_margin = Inches(0.75)
-        section.right_margin = Inches(0.75)
-
-    lines = cover_letter_text.strip().split("\n")
-    for line in lines:
-        cleaned_line = line.strip()
-        p = doc.add_paragraph()
-        p.paragraph_format.space_after = Pt(4)
-        p.paragraph_format.line_spacing = 1.15
-
-        if not cleaned_line:
-            continue
-
-        tokens = re.split(r'(\*\*.*?\*\*)', cleaned_line)
-        for token in tokens:
-            if token.startswith("**") and token.endswith("**"):
-                run = p.add_run(token[2:-2])
-                run.bold = True
-            else:
-                p.add_run(token)
-
-    doc.save(output_path)
-    return output_path
-
-
-def generate_docx_resume(resume_text: str, output_path: str) -> str:
-    """
-    Compiles the tailored resume text into a Harvard-formatted DOCX document safely.
-    """
-    os.makedirs(os.path.dirname(output_path), exist_ok=True)
-    doc = Document()
-
-    for section in doc.sections:
-        section.top_margin = Inches(0.5)
-        section.bottom_margin = Inches(0.5)
-        section.left_margin = Inches(0.5)
-        section.right_margin = Inches(0.5)
-
-    lines = resume_text.strip().split("\n")
-    for line in lines:
-        cleaned_line = line.strip()
-        if not cleaned_line:
-            continue
-
-        p = doc.add_paragraph()
-        p.paragraph_format.space_after = Pt(2)
-        p.paragraph_format.line_spacing = 1.15
-
-        tokens = re.split(r'(\*\*.*?\*\*)', cleaned_line)
-        for token in tokens:
-            if token.startswith("**") and token.endswith("**"):
-                run = p.add_run(token[2:-2])
-                run.bold = True
-            else:
-                p.add_run(token)
-
-    doc.save(output_path)
-    return output_path
-
-
 def run_tool(
     action: dict,
     session_id: str,
@@ -187,10 +154,11 @@ def run_tool(
 
     # Code-level guardrail against over-triggering document tools
     if tool_name in ["generate_cover_letter", "generate_targeted_resume"]:
-        trigger_words = ["cover letter", "resume", "write", "generate", "draft", "create", "build", "make"]
-        if user_message and not any(word in user_message.lower() for word in trigger_words):
+        if not _document_request_allowed(tool_name, user_message):
             return json.dumps({
-                "error": f"Tool '{tool_name}' was blocked because the user did not explicitly request document creation. Answer their query conversationally instead."
+                "error": f"Tool '{tool_name}' was blocked because the user did not explicitly request "
+                         f"document creation in their latest message. Answer their query conversationally "
+                         f"instead (e.g. using get_skill_gap or get_top_matches)."
             })
 
     if tool_name == "get_user_profile":
@@ -275,209 +243,11 @@ def run_tool(
             return f"ERROR: search_posting failed: {e}"
 
     elif tool_name == "generate_cover_letter":
-        try:
-            company = params.get("company")
-            title = params.get("title")
-            if not company or not title:
-                return json.dumps({"error": "generate_cover_letter requires both 'company' and 'title' parameters."})
-
-            profile = get_latest_resume_profile(session_id)
-            if not profile:
-                return json.dumps({"note": "No resume profile found for this session to build a cover letter."})
-
-            profile_dict = _get_resume_profile_dict(session_id)
-            resume_text = format_resume_string(profile_dict)
-
-            gap_analysis = {}
-            try:
-                gap_analysis = get_skill_gap_analysis(
-                    collection=job_collection,
-                    resume_text=resume_text,
-                    company=company,
-                    title=title,
-                )
-            except Exception:
-                pass
-
-            current_date = datetime.now().strftime("%B %d, %Y")
-
-            prompt_messages = [
-                {
-                    "role": "system",
-                    "content": (
-                        "You are a professional resume writer. Write a formal, tailored cover letter "
-                        "following standard professional formatting rules (Header, Salutation, Opening Hook, "
-                        "Body Paragraph with matched achievements, Closing Call-to-Action, and Sign-off). "
-                        "Output ONLY plain text without markdown code blocks."
-                    )
-                },
-                {
-                    "role": "user",
-                    "content": f"""
-Target Company: {company}
-Target Job Title: {title}
-
-Candidate Background:
-- Role/Category: {profile.get("current_role_category", "Professional")}
-- Experience: {profile.get("years_of_experience", "N/A")} years
-- Education: {profile.get("education_level", "N/A")}
-- Technical Skills: {profile.get("skills", "[]")}
-- Certifications: {profile.get("certifications", "[]")}
-
-Job Requirements & Gap Analysis:
-{json.dumps(gap_analysis, indent=2)}
-
-Format Requirements:
-1. HEADER:
-   [Applicant Name]
-   [City, State / Email / Phone Placeholder]
-   {current_date}
-
-   Hiring Manager or Hiring Team
-   {company}
-
-2. SALUTATION:
-   Dear Hiring Team at {company},
-
-3. OPENING PARAGRAPH:
-   State job title ({title}), express enthusiasm for {company}, and outline top qualifications.
-
-4. BODY PARAGRAPH(S):
-   Detail relevant technical experience matching {company}'s requirements.
-
-5. CLOSING PARAGRAPH:
-   Reiterate enthusiasm and request an interview.
-
-6. SIGN-OFF:
-   Sincerely,
-   [Applicant Name]
-"""
-                }
-            ]
-
-            cover_letter_text = call_llm(prompt_messages)
-
-            clean_company = company.strip()
-            docx_filename = f"Cover letter - {clean_company}.docx"
-            docx_dir = os.path.join(os.getcwd(), "output", "cover_letters")
-            docx_path = os.path.join(docx_dir, docx_filename)
-            
-            generate_docx_cover_letter(cover_letter_text, docx_path)
-
-            return json.dumps({
-                "company": company,
-                "title": title,
-                "cover_letter": cover_letter_text,
-                "docx_path": docx_path
-            })
-        except Exception as e:
-            return f"ERROR: generate_cover_letter failed: {e}"
+        return run_generate_cover_letter(params, session_id, call_llm)
 
     elif tool_name == "generate_targeted_resume":
-        try:
-            company = params.get("company")
-            title = params.get("title")
-            if not company or not title:
-                return json.dumps({"error": "generate_targeted_resume requires both 'company' and 'title' parameters."})
+        return run_generate_targeted_resume(params, session_id, call_llm)
 
-            profile = get_latest_resume_profile(session_id)
-            if not profile:
-                return json.dumps({"note": "No resume profile found for this session."})
-
-            profile_dict = _get_resume_profile_dict(session_id)
-            original_resume_text = format_resume_string(profile_dict)
-
-            gap_analysis = {}
-            try:
-                gap_analysis = get_skill_gap_analysis(
-                    collection=job_collection,
-                    resume_text=original_resume_text,
-                    company=company,
-                    title=title,
-                )
-            except Exception:
-                pass
-
-            prompt_messages = [
-                {
-                    "role": "system",
-                    "content": (
-                        "You are an expert executive resume writer. Generate a professional resume adhering strictly "
-                        "to the official Harvard Resume Format guidelines. Tailor the content specifically for the target job "
-                        "and company by combining original resume history with all recently updated skills."
-                    )
-                },
-                {
-                    "role": "user",
-                    "content": f"""
-Target Company: {company}
-Target Job Title: {title}
-
---- CANDIDATE DATA ---
-Original Resume Content:
-{original_resume_text}
-
-Latest Profile Data (Includes skills added/updated during chat):
-- Education Level: {profile.get("education_level", "N/A")}
-- Years of Experience: {profile.get("years_of_experience", "N/A")}
-- All Current & Updated Skills: {json.dumps(profile.get("skills", []))}
-- Certifications: {json.dumps(profile.get("certifications", []))}
-
-Job Gap Analysis:
-{json.dumps(gap_analysis, indent=2)}
-
---- HARVARD RESUME FORMATTING & CONTENT RULES ---
-Structure the resume into the following sections:
-
-**FirstName LastName**
-Address • City, State Zip • email@domain.com • Phone Number
-
-**EDUCATION**
-Institution Name | City, State or Country
-Degree, Major / Concentration | Graduation Date
-- Relevant Coursework or Academic Honors (if applicable)
-
-**EXPERIENCE**
-Organization Name | City, State or Country
-Position Title | Month Year – Month Year
-- Action-oriented bullet points outlining accomplishments, skills, and resulting outcomes.
-
-**LEADERSHIP & ACTIVITIES**
-Organization Name | City, State
-Role | Month Year – Month Year
-- Action-oriented bullet points highlighting leadership and initiative.
-
-**SKILLS & INTERESTS**
-- Technical: List software, frameworks, programming languages, and tools (must include all updated skills).
-- Language: List foreign languages and level of fluency (if applicable).
-- Interests: List activities or topics of interest that spark interview conversation.
-
-MANDATORY BULLET RULES:
-- Begin EVERY bullet line in Experience and Leadership with a strong action verb.
-- Quantify accomplishments where possible (e.g., percentages, metrics, numbers).
-- DO NOT use personal pronouns (I, me, my, we). Each line MUST be a phrase rather than a full sentence.
-- Weave the candidate's updated skills into the Experience bullet points where relevant.
-"""
-                }
-            ]
-
-            targeted_resume_text = call_llm(prompt_messages)
-
-            clean_company = company.strip()
-            docx_filename = f"Targeted Resume - {clean_company}.docx"
-            docx_dir = os.path.join(os.getcwd(), "output", "resumes")
-            docx_path = os.path.join(docx_dir, docx_filename)
-            
-            generate_docx_resume(targeted_resume_text, docx_path)
-
-            return json.dumps({
-                "company": company,
-                "title": title,
-                "targeted_resume": targeted_resume_text,
-                "docx_path": docx_path
-            })
-        except Exception as e:
-            return f"ERROR: generate_targeted_resume failed: {e}"
     else:
         return f"ERROR: Unknown tool '{tool_name}'"
 

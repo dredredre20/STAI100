@@ -81,7 +81,8 @@ def render_advisor_response(content: str, key_prefix: str):
     st.markdown(content)
     
     docx_path = None
-    
+    content_lower = content.lower()
+
     # Strategy 1: Match path from backend response
     match = re.search(r"\[DOCX Generated\]:\s*Saved to\s*(.+)", content)
     if match:
@@ -89,18 +90,35 @@ def render_advisor_response(content: str, key_prefix: str):
         if os.path.exists(extracted_path):
             docx_path = extracted_path
 
-    # Strategy 2: Fallback — scan output folders for the newest DOCX
-    if not docx_path and any(term in content.lower() for term in ["cover letter", "resume", "docx", "saved"]):
+    # Strategy 2: Fallback — scan the output folder for the newest DOCX,
+    # but ONLY the folder matching the document type this response is
+    # actually about. Previously this scanned "cover_letters" and "resumes"
+    # together and grabbed whichever file had the newest mtime across both,
+    # which could attach a resume to a cover-letter reply (or vice versa)
+    # whenever the two were generated close together. If the response text
+    # doesn't clearly indicate one type, we skip the fallback entirely
+    # rather than risk attaching the wrong document.
+    if not docx_path:
+        mentions_cover_letter = "cover letter" in content_lower
+        mentions_resume = "resume" in content_lower
+
+        if mentions_cover_letter and not mentions_resume:
+            candidate_folders = ["cover_letters"]
+        elif mentions_resume and not mentions_cover_letter:
+            candidate_folders = ["resumes"]
+        else:
+            # Ambiguous (mentions both, or neither) — don't guess.
+            candidate_folders = []
+
         possible_files = []
-        # Check both directories for generated files
-        for folder in ["cover_letters", "resumes"]:
+        for folder in candidate_folders:
             docx_dir = os.path.join(os.getcwd(), "output", folder)
             if os.path.exists(docx_dir):
                 files = [os.path.join(docx_dir, f) for f in os.listdir(docx_dir) if f.endswith(".docx")]
                 possible_files.extend(files)
-                
+
         if possible_files:
-            docx_path = max(possible_files, key=os.path.getmtime) # Select the newest file overall
+            docx_path = max(possible_files, key=os.path.getmtime)  # Newest file within the correct folder
 
     # Render download button with dynamic filename
     if docx_path and os.path.exists(docx_path):
