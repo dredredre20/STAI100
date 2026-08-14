@@ -52,7 +52,7 @@ class TestToolRouting:
         ("what skills do I have listed on my resume?", "get_user_profile"),
         ("I've learned how to use Databricks and Terraform, can you check my skill gaps with the role again?", "update_skills"), 
         ("I did a course on advanced python programming and did a data analysis project, check my skill gap again for the role", "update_skills"), 
-        ("Given our discussions, can you draft me a cover letter that I can use in my applications?", "generate_cover_letter"),
+        ("Can you draft me a cover letter that I can use in my application to Maya's analytics role?", "generate_cover_letter"),
         ("Can you help me write a cover letter for the Data Scientist role at LSEG?", "generate_cover_letter"),
         ("With my updated skills, can you generate me a resume that I can use to apply for the Data Scientist role at LSEG?", "generate_targeted_resume"),
         ("Can you help me create a resume that highlights my skills for the Data Scientist role at LSEG?", "generate_targeted_resume"),
