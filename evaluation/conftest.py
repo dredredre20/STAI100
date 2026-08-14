@@ -23,3 +23,18 @@ def pytest_sessionfinish(session, exitstatus):
             f"{name:<22} | mean={s['mean']:.4f} | std={s['std']:.4f} "
             f"| min={s['min']:.2f} | max={s['max']:.2f} | samples={s['count']}"
         )
+
+    # Score specifically for the judge evaluation tier.
+    judge_stats = collector.stats("judge_score")
+    if judge_stats["count"] > 0:
+        threshold = 4.0
+        print(
+            f"\nAverage judge score: {judge_stats['mean']:.2f}/5 "
+            f"({judge_stats['count']} cases)"
+        )
+        if judge_stats["mean"] < threshold:
+            print(
+                f"FAILED: average judge score {judge_stats['mean']:.2f} "
+                f"below {threshold} threshold"
+            )
+            session.exitstatus = 1

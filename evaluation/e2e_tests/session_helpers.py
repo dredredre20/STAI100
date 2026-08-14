@@ -1,3 +1,19 @@
+"""
+This file is used across all e2e tests to provide shared fixtures and helper functions.
+
+End-to-end evals — full run_agent() call, then a JUDGE model (not the same
+small local model being tested) scores the final answer against a rubric.
+
+Using a separate, stronger judge model avoids the "model grading its own
+homework" problem — gemma4:e4b's own biases/blind spots would just be
+replicated if it judged itself.
+
+Requires an open model key (or your judge provider's key) to be set.
+Run all tests with: pytest evaluation/end_to_end/ -v -s
+Or a specific test with: pytest evaluation/end_to_end/test_agentic_llm.py -v -s
+"""
+
+import json
 import pytest
 from memory.db_setup import get_connection
 from memory.db_memory import save_resume_profile
@@ -53,3 +69,25 @@ def reset_fixed_session():
     yield
 
     _clear_fixed_session()
+
+
+def llm_judge(question: str, answer: str, rubric: str) -> dict:
+    """Sends the question/answer/rubric to a judge model, returns a
+    structured score + reasoning. Keeping this as a separate function
+    (not inline in the test) means the judge logic can be reused and
+    audited independently of any single test case."""
+    prompt = f"""You are grading a career-readiness advisor chatbot's response.
+
+    User Question: {question}
+    
+    Chatbot's Answer: {answer}
+    
+    Grading Rubric:
+    {rubric}
+    
+    Respond with ONLY valid JSON, no markdown fences:
+    {{"pass": true/false, "score": 0-5, "reasoning": "one or two sentences"}}"""
+
+    response = llm.invoke(prompt)
+    raw = response.content.strip()
+    return json.loads(raw)

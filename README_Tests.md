@@ -10,7 +10,7 @@ py -m pytest unit_tests\ -v -s
 
 ### 2. Run a specific Test
 ```bash
-py -m pytest unit_tests\\test_guardrails.py -v -s
+py -m pytest unit_tests\\test_job_retrieval.py -v -s
 ```
 
 ---
@@ -36,5 +36,5 @@ py -m pytest e2e_tests\ -v -s
 
 ### 2. Run a specific Test
 ```bash
-py -m pytest e2e_tests\\test_llm_judge.py -v -s
+py -m pytest e2e_tests\\test_agentic_llm.py -v -s
 ```
