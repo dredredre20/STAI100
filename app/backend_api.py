@@ -1,5 +1,7 @@
 import json
 import tempfile
+import time
+import traceback
 from pathlib import Path
 from typing import Any, AsyncGenerator
 
@@ -9,19 +11,16 @@ from fastapi.responses import StreamingResponse
 from pydantic import BaseModel
 
 from resume_processing.pipeline import load_resume_text, run_resume_intake_pipeline
-from session_store.persistence import create_session, save_resume_profile, save_diff_result
-from gap_diff.diff_engine import run_gap_diff
-from chatbot import run_agent
+from memory.db_memory import create_session, save_resume_profile
+from react.react_agent import run_agent
 
 from guardrails.input_guardrail import check_input
-from session_store.db_setup import init_db
+from memory.db_setup import init_db
 
-import time
-import traceback
+from config import MODEL, MLFLOW_ENABLED
 
-from llmops.llmops_logger import log_request
-
-from config import MODEL
+if MLFLOW_ENABLED:
+    from llmops.llmops_logger import log_request
 
 
 app = FastAPI(title="STAI100 Resume Intake API")
@@ -35,10 +34,20 @@ app.add_middleware(
 
 @app.on_event("startup")
 def startup_event():
+    """Initialize the database when the FastAPI app starts."""
     init_db()
 
-# function to process uploaded resume and return structured result  
+
 def process_uploaded_resume(uploaded_file: Path | str, target_role: str | None = None) -> dict[str, Any]:
+    """Process an uploaded resume file through the intake pipeline.
+
+    Args:
+        uploaded_file: Path or string pointing to the uploaded PDF file.
+        target_role: Optional target role override to apply during extraction.
+
+    Returns:
+        A structured dictionary containing the extracted profile and validation status.
+    """
     temp_path = Path(uploaded_file)
     if not temp_path.exists():
         raise FileNotFoundError(f"Uploaded file not found: {temp_path}")
@@ -50,31 +59,43 @@ def process_uploaded_resume(uploaded_file: Path | str, target_role: str | None =
         target_role_override=target_role,
     )
 
-
-import traceback
-
-# function to persist completed profile to database and return session ID
 def persist_completed_profile(result: dict[str, Any]) -> str:
+    """Persist a validated resume profile to the database and return a new session ID.
+
+    Args:
+        result: The structured resume-processing result from the intake pipeline.
+
+    Returns:
+        The newly created session ID for the saved profile.
+    """
     profile = result["validated_profile"]
     try:
         session_id = create_session()
-        resume_profile_id = save_resume_profile(session_id, profile)
-        diff_result = run_gap_diff(profile.get("skills", []), profile.get("target_role"))
-        save_diff_result(session_id, resume_profile_id, profile.get("target_role"), diff_result)
+        save_resume_profile(session_id, profile)
         return session_id
     except Exception:
         traceback.print_exc()   # TEMP DEBUG — shows full traceback in uvicorn terminal
         raise
 
 
-# function to process uploaded resume and return structured result (non-streaming)
 @app.post("/process")
 def process_resume(
     file: UploadFile = File(...),
     target_role: str | None = Form(default=None),
 ):
-    """Non-streaming endpoint — kept for simple/synchronous callers (e.g.
-    scripts, testing) that just want the final result in one response."""
+    """Process an uploaded resume and return the final structured result.
+
+    This is the non-streaming endpoint used by simple clients that want the complete result in
+    a single response.
+
+    Args:
+        file: The uploaded resume file.
+        target_role: Optional target-role override supplied by the client.
+
+    Returns:
+        A dictionary describing the extraction result and any validation state.
+    """
+
     start_ts = time.perf_counter()
 
     try:
@@ -87,38 +108,44 @@ def process_resume(
         if result.get("is_complete"):
             result["session_id"] = persist_completed_profile(result)
 
-
-        latency_ms = (time.perf_counter() - start_ts) * 1000
-        log_request(
-            model=MODEL,
-            prompt=f"[resume upload: {file.filename}, target_role={target_role}]",
-            completion=json.dumps(result.get("validated_profile") or result.get("clarification_question") or ""),
-            latency_ms=latency_ms,
-            guardrail_fired=False,
-            extra={"interface": "api", "endpoint": "/process"},
-        )
+        if MLFLOW_ENABLED:
+            latency_ms = (time.perf_counter() - start_ts) * 1000
+            log_request(
+                model=MODEL,
+                prompt=f"[resume upload: {file.filename}, target_role={target_role}]",
+                completion=json.dumps(result.get("validated_profile") or result.get("clarification_question") or ""),
+                latency_ms=latency_ms,
+                guardrail_fired=False,
+                extra={"interface": "api", "endpoint": "/process"},
+            )
 
         return result
     except Exception as exc:  # pragma: no cover - defensive API handling
 
-        latency_ms = (time.perf_counter() - start_ts) * 1000
-        log_request(
-            model=MODEL,
-            prompt=f"[resume upload: {file.filename}]",
-            completion=f"ERROR: {exc}",
-            latency_ms=latency_ms,
-            guardrail_fired=False,
-            extra={"interface": "api", "endpoint": "/process", "error": True},
-        )
+        if MLFLOW_ENABLED:
+            latency_ms = (time.perf_counter() - start_ts) * 1000
+            log_request(
+                model=MODEL,
+                prompt=f"[resume upload: {file.filename}]",
+                completion=f"ERROR: {exc}",
+                latency_ms=latency_ms,
+                guardrail_fired=False,
+                extra={"interface": "api", "endpoint": "/process", "error": True},
+            )
 
         raise HTTPException(status_code=500, detail=str(exc)) from exc
 
 
-# function to generate SSE events for each pipeline stage and final result
 async def _sse_stage_generator(temp_path: Path, target_role: str | None) -> AsyncGenerator[str, None]:
-    """Yields SSE events for each pipeline stage, then a final event with the
-    full structured result. Streams stage progress, not tokens, since this
-    pipeline produces structured data rather than prose until the very end."""
+    """Yield SSE events for each resume-processing stage and the final result.
+
+    Args:
+        temp_path: Path to the temporary uploaded resume file.
+        target_role: Optional target-role override passed to the processing pipeline.
+
+    Yields:
+        Server-sent events describing progress updates and the final structured output.
+    """
     start_ts = time.perf_counter()
 
     stages = [
@@ -142,28 +169,30 @@ async def _sse_stage_generator(temp_path: Path, target_role: str | None) -> Asyn
         if result.get("is_complete"):
             result["session_id"] = persist_completed_profile(result)
 
-        latency_ms = (time.perf_counter() - start_ts) * 1000
-        log_request(
-            model=MODEL,
-            prompt=f"[resume upload (stream), target_role={target_role}]",
-            completion=json.dumps(result.get("validated_profile") or result.get("clarification_question") or ""),
-            latency_ms=latency_ms,
-            guardrail_fired=False,
-            extra={"interface": "api", "endpoint": "/process/stream"},
-        )
+        if MLFLOW_ENABLED:
+            latency_ms = (time.perf_counter() - start_ts) * 1000
+            log_request(
+                model=MODEL,
+                prompt=f"[resume upload (stream), target_role={target_role}]",
+                completion=json.dumps(result.get("validated_profile") or result.get("clarification_question") or ""),
+                latency_ms=latency_ms,
+                guardrail_fired=False,
+                extra={"interface": "api", "endpoint": "/process/stream"},
+            )
 
         yield f"data: {json.dumps({'type': 'result', 'result': result})}\n\n"
     except Exception as e:
 
-        latency_ms = (time.perf_counter() - start_ts) * 1000
-        log_request(
-            model=MODEL,
-            prompt=f"[resume upload (stream), target_role={target_role}]",
-            completion=f"ERROR: {e}",
-            latency_ms=latency_ms,
-            guardrail_fired=False,
-            extra={"interface": "api", "endpoint": "/process/stream", "error": True},
-        )
+        if MLFLOW_ENABLED:
+            latency_ms = (time.perf_counter() - start_ts) * 1000
+            log_request(
+                model=MODEL,
+                prompt=f"[resume upload (stream), target_role={target_role}]",
+                completion=f"ERROR: {e}",
+                latency_ms=latency_ms,
+                guardrail_fired=False,
+                extra={"interface": "api", "endpoint": "/process/stream", "error": True},
+            )
 
         yield f"data: {json.dumps({'type': 'error', 'error': str(e)})}\n\n"
     finally:
@@ -171,14 +200,23 @@ async def _sse_stage_generator(temp_path: Path, target_role: str | None) -> Asyn
         yield "data: [DONE]\n\n"
 
 
-# function to process uploaded resume and return structured result (streaming via SSE)
 @app.post("/process/stream")
 async def process_resume_stream(
     file: UploadFile = File(...),
     target_role: str | None = Form(default=None),
 ):
-    """Streaming version of /process — sends stage-progress events over SSE
-    so the frontend can show live status instead of a single blocking wait."""
+    """Stream resume-processing progress and results over Server-Sent Events.
+
+    This endpoint is used by the frontend to show live status updates while the backend runs the
+    resume intake pipeline.
+
+    Args:
+        file: The uploaded resume file.
+        target_role: Optional target-role override supplied by the client.
+
+    Returns:
+        A StreamingResponse that emits stage updates and the final processing result.
+    """
     with tempfile.NamedTemporaryFile(suffix=Path(file.filename or "resume.pdf").suffix or ".pdf", delete=False) as tmp:
         tmp.write(file.file.read())
         temp_path = Path(tmp.name)
@@ -188,7 +226,6 @@ async def process_resume_stream(
         media_type="text/event-stream",
     )
 
-
 class ChatRequest(BaseModel):
     message: str
     session_id: str
@@ -196,24 +233,35 @@ class ChatRequest(BaseModel):
     target_role: str
 
 
-# function to handle chat messages from the user and return bot responses
 @app.post("/chat")
 def chat(body: ChatRequest) -> dict:
+    """Handle user chat requests and return the advisor's response.
+
+    The endpoint first applies the input guardrail, then runs the agent loop to generate a
+    reply based on the resume context and conversation history.
+
+    Args:
+        body: Request payload containing the message, session ID, and resume context.
+
+    Returns:
+        A dictionary containing the generated answer.
+    """
 
     start_ts = time.perf_counter()
 
     is_safe, blocked_message = check_input(body.message) # input guardrail
 
-    if not is_safe:
-        latency_ms = (time.perf_counter() - start_ts) * 1000
-        log_request(
-            model=MODEL,
-            prompt=body.message,
-            completion=blocked_message,
-            latency_ms=latency_ms,
-            guardrail_fired=True,
-            extra={"interface": "api", "endpoint": "/chat", "session_id": body.session_id},
-        )
+    if not is_safe: # if message is blocked by guardrail, return the blocked message and log the request
+        if MLFLOW_ENABLED:
+            latency_ms = (time.perf_counter() - start_ts) * 1000
+            log_request(
+                model=MODEL,
+                prompt=body.message,
+                completion=blocked_message,
+                latency_ms=latency_ms,
+                guardrail_fired=True,
+                extra={"interface": "api", "endpoint": "/chat", "session_id": body.session_id},
+            )
         return {"answer": blocked_message}
 
     try:
@@ -224,26 +272,31 @@ def chat(body: ChatRequest) -> dict:
             target_role=body.target_role,
             verbose=False,
         )
-        latency_ms = (time.perf_counter() - start_ts) * 1000
-        log_request(
-            model=MODEL,
-            prompt=body.message,
-            completion=answer,
-            latency_ms=latency_ms,
-            guardrail_fired=False,
-            extra={"interface": "api", "endpoint": "/chat", "session_id": body.session_id},
-        )
+
+        if MLFLOW_ENABLED:
+            latency_ms = (time.perf_counter() - start_ts) * 1000
+            log_request(
+                model=MODEL,
+                prompt=body.message,
+                completion=answer,
+                latency_ms=latency_ms,
+                guardrail_fired=False,
+                extra={"interface": "api", "endpoint": "/chat", "session_id": body.session_id},
+            )
+
         return {"answer": answer}
     except Exception as exc:
-        latency_ms = (time.perf_counter() - start_ts) * 1000
-        log_request(
-            model=MODEL,
-            prompt=body.message,
-            completion=f"ERROR: {exc}",
-            latency_ms=latency_ms,
-            guardrail_fired=False,
-            extra={"interface": "api", "endpoint": "/chat", "session_id": body.session_id, "error": True},
-        )
+
+        if MLFLOW_ENABLED:
+            latency_ms = (time.perf_counter() - start_ts) * 1000
+            log_request(
+                model=MODEL,
+                prompt=body.message,
+                completion=f"ERROR: {exc}",
+                latency_ms=latency_ms,
+                guardrail_fired=False,
+                extra={"interface": "api", "endpoint": "/chat", "session_id": body.session_id, "error": True},
+            )
         raise HTTPException(status_code=500, detail=str(exc)) from exc
 
 @app.get("/health")

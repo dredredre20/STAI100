@@ -1,18 +1,27 @@
-from .pii_redaction import redact_resume_pii
-from .extract_fields import extract_resume_fields
+from guardrails.pii_redaction import redact_resume_pii
+from .field_extraction import extract_resume_fields
 from .disambiguation import get_missing_fields, generate_target_role_clarification
-from .schema import RESUME_FIELD_DEFINITIONS
+from .resume_schema import RESUME_FIELD_DEFINITIONS
 from .validate_output import validate_resume_profile
-from .verify import verify_resume_text
+from guardrails.format_verification import verify_resume_text
 from llm_utils import complete
 from config import MODEL
 from pypdf import PdfReader
 
 
 def load_resume_text(pdf_path: str) -> str:
+    """Extract and concatenate text from a PDF resume file.
+
+    Args:
+        pdf_path: Path to the PDF file to read.
+
+    Returns:
+        A single string containing the extracted text from all pages.
+    """
     reader = PdfReader(pdf_path)
     page_texts = []
     for page in reader.pages:
+        # Some PDF pages may not contain extractable text, so skip empty results.
         text = page.extract_text()
         if text:
             page_texts.append(text)
@@ -22,7 +31,6 @@ def load_resume_text(pdf_path: str) -> str:
 SEP = "-" * 54
 
 
-# function to run the full resume intake pipeline: verification, PII redaction, field extraction, completeness check, clarification loop, and output validation
 def run_resume_intake_pipeline(
     resume_text: str,
     model: str = MODEL,
@@ -31,7 +39,28 @@ def run_resume_intake_pipeline(
     target_role_override: str | None = None,
 ) -> dict:
     
-    # [1] Resume verification — reject non-resume uploads early
+    """Run the full resume intake workflow from raw text to validated structured output.
+
+    The pipeline performs a series of checks and transformations:
+    1. verify the upload appears to be a resume,
+    2. redact personally identifiable information,
+    3. extract structured fields with an LLM,
+    4. check for missing required fields,
+    5. ask for clarification when needed,
+    6. validate and repair the final structured profile.
+
+    Args:
+        resume_text: Raw resume text or extracted PDF content.
+        model: Model identifier to use for LLM calls.
+        verbose: Whether to print progress information to the console.
+        interactive: Whether to prompt the user for clarification in a chat loop.
+        target_role_override: Optional override for the target role when known upfront.
+
+    Returns:
+        A dictionary containing the processed fields, missing-field state, validation output,
+        and any clarification information.
+    """
+    # [1] Resume verification — reject non-resume uploads early.
     if verbose: print(f"{SEP}\n[1] Resume verification")
     if not verify_resume_text(resume_text, model):
         if verbose: print("    => upload rejected: not a resume")
@@ -101,7 +130,7 @@ def run_resume_intake_pipeline(
     if verbose:
         print(f"    => {'All required fields filled' if is_complete else f'Still missing: {missing}'}")
 
-    # [5] Output Validation ───────────────────────────────────────────
+    # [4] Output Validation ───────────────────────────────────────────
     if verbose: print("[5] Output Validation")
     validated_profile = None
     validation_error = None
@@ -125,21 +154,3 @@ def run_resume_intake_pipeline(
         "validated_profile": validated_profile,
         "validation_error": validation_error,
     }
-
-
-if __name__ == "__main__":
-    import sys
-
-    if len(sys.argv) < 2:
-        print("Usage: python -m resume_processing.pipeline <path_to_resume.pdf>")
-        sys.exit(1)
-
-    pdf_path = sys.argv[1]
-    resume_text = load_resume_text(pdf_path)
-    result = run_resume_intake_pipeline(resume_text)  # interactive=True by default for CLI use
-
-    print(f"\n{SEP}\nFINAL RESULT\n{SEP}")
-    print(f"Complete: {result['is_complete']}")
-    print(f"Validated profile: {result['validated_profile']}")
-    if result['validation_error']:
-        print(f"Validation error: {result['validation_error']}")
