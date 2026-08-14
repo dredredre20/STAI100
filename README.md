@@ -2,7 +2,13 @@
 
 Agent 8 is a career-readiness web application that ingests job postings, processes resumes, runs model-driven matching and generation tasks (resume/cover letters), and exposes a backend API and a Streamlit frontend for interaction. The project includes tooling for evaluation, guardrails for validating model outputs, and an agentic workflow layer powered by a ReAct agent.
 
-## Quick Start
+## Deployed Application (Proxmox)
+
+If you want to access the live hosted environment directly without running it locally:
+
+- Web App: http://103.231.240.130:2151
+
+## Quick Start (Local Deployment)
 
 - Start MLflow (if you use it for tracking):
 
