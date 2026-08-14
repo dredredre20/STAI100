@@ -81,44 +81,26 @@ def render_advisor_response(content: str, key_prefix: str):
     st.markdown(content)
     
     docx_path = None
-    content_lower = content.lower()
 
-    # Strategy 1: Match path from backend response
+    # The backend (react_agent.py) deterministically appends
+    # "[DOCX Generated]: Saved to <path>" to a reply whenever a document
+    # tool actually ran this turn, using the exact path returned by the tool
+    # itself — not something the LLM has to transcribe correctly in free
+    # text. This is intentionally the ONLY source used to pick a file here.
+    # An earlier version of this function fell back to "scan the output
+    # folder and grab whichever DOCX has the newest timestamp" whenever this
+    # exact phrase was missing from the LLM's reply. That fallback caused
+    # the reported bug: since the output folder was scanned fresh on every
+    # Streamlit rerun (which happens on every new chat message) and wasn't
+    # scoped to the current session, an older chat bubble's download button
+    # could silently start pointing at a completely different, newer file
+    # generated later, or even one from someone else's session. We no
+    # longer guess — if the exact path isn't present, no button is shown.
     match = re.search(r"\[DOCX Generated\]:\s*Saved to\s*(.+)", content)
     if match:
         extracted_path = match.group(1).strip().strip("'\"")
         if os.path.exists(extracted_path):
             docx_path = extracted_path
-
-    # Strategy 2: Fallback — scan the output folder for the newest DOCX,
-    # but ONLY the folder matching the document type this response is
-    # actually about. Previously this scanned "cover_letters" and "resumes"
-    # together and grabbed whichever file had the newest mtime across both,
-    # which could attach a resume to a cover-letter reply (or vice versa)
-    # whenever the two were generated close together. If the response text
-    # doesn't clearly indicate one type, we skip the fallback entirely
-    # rather than risk attaching the wrong document.
-    if not docx_path:
-        mentions_cover_letter = "cover letter" in content_lower
-        mentions_resume = "resume" in content_lower
-
-        if mentions_cover_letter and not mentions_resume:
-            candidate_folders = ["cover_letters"]
-        elif mentions_resume and not mentions_cover_letter:
-            candidate_folders = ["resumes"]
-        else:
-            # Ambiguous (mentions both, or neither) — don't guess.
-            candidate_folders = []
-
-        possible_files = []
-        for folder in candidate_folders:
-            docx_dir = os.path.join(os.getcwd(), "output", folder)
-            if os.path.exists(docx_dir):
-                files = [os.path.join(docx_dir, f) for f in os.listdir(docx_dir) if f.endswith(".docx")]
-                possible_files.extend(files)
-
-        if possible_files:
-            docx_path = max(possible_files, key=os.path.getmtime)  # Newest file within the correct folder
 
     # Render download button with dynamic filename
     if docx_path and os.path.exists(docx_path):

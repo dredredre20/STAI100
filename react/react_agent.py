@@ -308,6 +308,12 @@ def run_agent(
     ]
 
     final_answer = None
+    # Deterministic record of the docx path returned by a document-generation
+    # tool this turn, taken straight from the tool's own JSON result — not
+    # from the LLM's free-text final_answer, which isn't reliable enough to
+    # reproduce an exact filesystem path verbatim every time (see below).
+    last_docx_path = None
+
     for turn in range(1, max_turns + 1):
         if verbose:
             print(f"\n------ TURN {turn} ------")
@@ -337,9 +343,33 @@ def run_agent(
             )
             if verbose:
                 print(f"Result: {result_str[:300]}")
+
+            try:
+                observation_data = json.loads(result_str)
+                if isinstance(observation_data, dict) and observation_data.get("docx_path"):
+                    last_docx_path = observation_data["docx_path"]
+            except (json.JSONDecodeError, TypeError):
+                pass
+
             messages.append({"role": "user", "content": f"Observation: {result_str}"})
         else:
-            final_answer = format_final_answer(data.get("final_answer", ""))
+            final_answer = format_final_answer(data.get("final_answer", "") or "")
+
+            # The system prompt asks the LLM to literally include
+            # "[DOCX Generated]: Saved to <path>" in its final_answer after a
+            # document tool runs, but free-text generation isn't a reliable
+            # place to carry an exact filesystem path — the model sometimes
+            # paraphrases it away entirely, or (less often) reproduces a
+            # slightly wrong path. The frontend's download button depends on
+            # that exact line, so we don't trust the LLM's copy of it: strip
+            # anything it wrote on that line and replace it with the real
+            # path we captured directly from the tool result above. This
+            # guarantees the frontend always finds the correct file when a
+            # document was actually generated this turn, and never shows a
+            # download button when one wasn't.
+            if last_docx_path:
+                final_answer = re.sub(r"\[DOCX Generated\]:.*", "", final_answer).rstrip()
+                final_answer = f"{final_answer}\n\n[DOCX Generated]: Saved to {last_docx_path}"
             break
 
     if final_answer is None:
